@@ -1212,7 +1212,11 @@ function renderEvaluationView() {
     let ratingClass = 'rating-d';
     let ratingOrder = 4; // Rank 4: D
 
-    if (rate >= 90) {
+    if (u.total === 0) {
+      rating = 'B - Tốt';
+      ratingClass = 'rating-b';
+      ratingOrder = 2; // Rank 2: B for personnel with 0 tasks
+    } else if (rate >= 90) {
       rating = 'A - Xuất sắc';
       ratingClass = 'rating-a';
       ratingOrder = 1; // Rank 1: A
