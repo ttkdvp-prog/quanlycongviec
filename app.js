@@ -694,8 +694,8 @@ function renderListView() {
       <td>${escapeHtml(t['Ngày kết thúc'] || '-')}</td>
       
       <!-- INLINE EDITABLE: Ngày làm xong -->
-      <td style="width: 120px;">
-        <input type="text" class="inline-edit-input" value="${escapeHtml(t['Ngày làm xong'] || '')}" placeholder="dd/mm/yyyy" onchange="handleInlineEdit('QLCV', '${t['ID']}', 'Ngày làm xong', this.value)">
+      <td style="width: 140px;">
+        <input type="date" class="inline-edit-input inline-edit-date" value="${formatDateForInput(t['Ngày làm xong'])}" onchange="handleInlineEdit('QLCV', '${t['ID']}', 'Ngày làm xong', this.value)">
       </td>
 
       <!-- Progress bar -->
@@ -762,14 +762,15 @@ function handleInlineEdit(sheetName, id, field, value) {
     const item = list.find(x => String(x['ID']) === String(id));
     
     if (item) {
-      item[field] = value;
+      const finalValue = (field === 'Ngày làm xong') ? formatDateDisplay(value) : value;
+      item[field] = finalValue;
       const newStatus = computeTaskStatus(item);
       item['Trạng thái'] = newStatus;
 
       renderCurrentTab();
 
       const updateObj = { id: id };
-      updateObj[field] = value;
+      updateObj[field] = finalValue;
       updateObj['Trạng thái'] = newStatus;
 
       const action = sheetName === 'QLCV' ? 'updateTaskInline' : 'updateTTTaskInline';
@@ -821,7 +822,7 @@ function renderTTView() {
       </td>
       <td>${escapeHtml(t['Ngày bắt đầu'] || '-')}</td>
       <td>${escapeHtml(t['Ngày kết thúc'] || '-')}</td>
-      <td><input type="text" class="inline-edit-input" value="${escapeHtml(t['Ngày làm xong'] || '')}" onchange="handleInlineEdit('TT_giaoviec', '${t['ID']}', 'Ngày làm xong', this.value)"></td>
+      <td style="width: 140px;"><input type="date" class="inline-edit-input inline-edit-date" value="${formatDateForInput(t['Ngày làm xong'])}" onchange="handleInlineEdit('TT_giaoviec', '${t['ID']}', 'Ngày làm xong', this.value)"></td>
       <td>${ratio}%</td>
       <td>${kh}</td>
       <td><input type="number" class="inline-edit-input" value="${th}" min="0" onchange="handleInlineEdit('TT_giaoviec', '${t['ID']}', 'Thực hiện', this.value)"></td>

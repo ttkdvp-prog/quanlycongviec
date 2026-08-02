@@ -721,6 +721,25 @@ body {
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
+.inline-edit-date {
+  color: #94a3b8 !important;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.4rem;
+  cursor: pointer;
+}
+
+.inline-edit-date::-webkit-calendar-picker-indicator {
+  filter: invert(0.6);
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.inline-edit-date:hover,
+.inline-edit-date:focus {
+  color: #cbd5e1 !important;
+  border-color: var(--accent-primary);
+}
+
 .inline-edit-textarea {
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
