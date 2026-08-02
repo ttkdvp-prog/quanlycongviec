@@ -79,25 +79,44 @@ const gasApi = {
         // Standalone Web App / Vercel Execution via fetch()
         const apiUrl = state.apiUrl;
         if (!apiUrl) {
-          showToast('Vui lòng cài đặt Apps Script Web App URL trong mục Cấu hình!', 'warning');
-          // Return local mockup fallback if API URL is empty
+          showToast('Vui lòng dán Apps Script Web App URL vào mục Cấu hình bánh răng!', 'warning');
           return resolve({ success: true, localMock: true });
         }
 
-        fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: action, data: data })
-        })
-        .then(res => res.json())
-        .then(res => {
-          if (res && res.success === false) {
-            reject(res.error || 'Lỗi API');
-          } else {
-            resolve(res);
-          }
-        })
-        .catch(err => reject('Lỗi kết nối REST API: ' + err.toString()));
+        // For data retrieval actions, use GET query param which is 100% CORS-friendly in GAS
+        let fetchPromise;
+        const isReadAction = ['getAllData', 'getTasks', 'getUsers', 'getTTTasks', 'getDocuments', 'getSpecialTasks'].includes(action);
+        
+        if (isReadAction) {
+          const sep = apiUrl.includes('?') ? '&' : '?';
+          fetchPromise = fetch(`${apiUrl}${sep}action=${action}&_t=${Date.now()}`);
+        } else {
+          fetchPromise = fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: action, data: data })
+          });
+        }
+
+        fetchPromise
+          .then(res => res.text())
+          .then(text => {
+            let res;
+            try {
+              res = JSON.parse(text);
+            } catch (e) {
+              if (text.trim().startsWith('<')) {
+                throw new Error('Apps Script trả về HTML thay vì JSON. Vui lòng kiểm tra lại URL Web App và đảm bảo khi Deploy đã chọn "Who has access" là "Anyone" (Bất kỳ ai).');
+              }
+              throw new Error('Dữ liệu trả về không đúng định dạng JSON: ' + text.substring(0, 100));
+            }
+            if (res && res.success === false) {
+              reject(res.error || 'Lỗi API');
+            } else {
+              resolve(res);
+            }
+          })
+          .catch(err => reject('Lỗi kết nối REST API: ' + (err.message || err.toString())));
       }
     });
   }
