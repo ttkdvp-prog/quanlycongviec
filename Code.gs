@@ -20,6 +20,20 @@ function getSpreadsheet() {
 /**
  * Serves HTML web page or JSON API responses via GET
  */
+function extractIdHelper(data, paramObj) {
+  if (!data && !paramObj) return "";
+  if (typeof data === "string" || typeof data === "number") return String(data);
+  if (typeof data === "object") {
+    var idVal = data.id || data.ID || data.maNV || data.Mã_NV || data['Mã NV'];
+    if (idVal) return String(idVal);
+  }
+  if (paramObj) {
+    var pVal = paramObj.id || paramObj.ID || paramObj.maNV || paramObj.Mã_NV || paramObj['Mã NV'];
+    if (pVal) return String(pVal);
+  }
+  return "";
+}
+
 function doGet(e) {
   e = e || { parameter: {} };
   var action = e.parameter.action;
@@ -39,8 +53,18 @@ function doGet(e) {
         responseData = { success: true, data: apiGetDocumentsData() };
       } else if (action === "getSpecialTasks") {
         responseData = { success: true, data: apiGetSheetData("cvluuy") };
+      } else if (action === "deleteTask") {
+        responseData = apiDeleteTask(extractIdHelper(null, e.parameter));
+      } else if (action === "deleteTTTask") {
+        responseData = apiDeleteTTTask(extractIdHelper(null, e.parameter));
+      } else if (action === "deleteDocument") {
+        responseData = apiDeleteDocument(extractIdHelper(null, e.parameter));
+      } else if (action === "deleteUser") {
+        responseData = apiDeleteUser(extractIdHelper(null, e.parameter));
+      } else if (action === "deleteSpecialTask") {
+        responseData = apiDeleteSpecialTask(extractIdHelper(null, e.parameter));
       } else {
-        responseData = { success: false, error: "Action không hợp lệ: " + action };
+        responseData = { success: false, error: "Action GET không hợp lệ: " + action };
       }
     } catch (err) {
       responseData = { success: false, error: err.toString() };
@@ -86,25 +110,25 @@ function doPost(e) {
     } else if (action === "updateTaskInline") {
       responseData = apiUpdateTaskInline(data);
     } else if (action === "deleteTask") {
-      responseData = apiDeleteTask(data.id || data.ID);
+      responseData = apiDeleteTask(extractIdHelper(data, e ? e.parameter : null));
     } else if (action === "saveTTTask") {
       responseData = apiSaveTTTask(data);
     } else if (action === "updateTTTaskInline") {
       responseData = apiUpdateTTTaskInline(data);
     } else if (action === "deleteTTTask") {
-      responseData = apiDeleteTTTask(data.id || data.ID);
+      responseData = apiDeleteTTTask(extractIdHelper(data, e ? e.parameter : null));
     } else if (action === "saveDocument") {
       responseData = apiSaveDocument(data);
     } else if (action === "deleteDocument") {
-      responseData = apiDeleteDocument(data.id || data.ID);
+      responseData = apiDeleteDocument(extractIdHelper(data, e ? e.parameter : null));
     } else if (action === "saveUser") {
       responseData = apiSaveUser(data);
     } else if (action === "deleteUser") {
-      responseData = apiDeleteUser(data.maNV || data.Mã_NV || data.ID);
+      responseData = apiDeleteUser(extractIdHelper(data, e ? e.parameter : null));
     } else if (action === "saveSpecialTask") {
       responseData = apiSaveSpecialTask(data);
     } else if (action === "deleteSpecialTask") {
-      responseData = apiDeleteSpecialTask(data.id || data.ID);
+      responseData = apiDeleteSpecialTask(extractIdHelper(data, e ? e.parameter : null));
     } else {
       responseData = { success: false, error: "Action POST không hợp lệ: " + action };
     }

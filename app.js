@@ -60,19 +60,21 @@ const gasApi = {
             reject(err ? err.toString() : 'Lỗi hệ thống Apps Script');
           });
 
+        const getCleanId = (d) => (d && typeof d === 'object') ? (d.id || d.ID || d.maNV || d) : d;
+
         if (action === 'getAllData') runner.apiGetAllData();
         else if (action === 'saveTask') runner.apiSaveTask(data);
         else if (action === 'updateTaskInline') runner.apiUpdateTaskInline(data);
-        else if (action === 'deleteTask') runner.apiDeleteTask(data);
+        else if (action === 'deleteTask') runner.apiDeleteTask(getCleanId(data));
         else if (action === 'saveTTTask') runner.apiSaveTTTask(data);
         else if (action === 'updateTTTaskInline') runner.apiUpdateTTTaskInline(data);
-        else if (action === 'deleteTTTask') runner.apiDeleteTTTask(data);
+        else if (action === 'deleteTTTask') runner.apiDeleteTTTask(getCleanId(data));
         else if (action === 'saveDocument') runner.apiSaveDocument(data);
-        else if (action === 'deleteDocument') runner.apiDeleteDocument(data);
+        else if (action === 'deleteDocument') runner.apiDeleteDocument(getCleanId(data));
         else if (action === 'saveUser') runner.apiSaveUser(data);
-        else if (action === 'deleteUser') runner.apiDeleteUser(data);
+        else if (action === 'deleteUser') runner.apiDeleteUser(getCleanId(data));
         else if (action === 'saveSpecialTask') runner.apiSaveSpecialTask(data);
-        else if (action === 'deleteSpecialTask') runner.apiDeleteSpecialTask(data);
+        else if (action === 'deleteSpecialTask') runner.apiDeleteSpecialTask(getCleanId(data));
         else reject('Action không được hỗ trợ: ' + action);
 
       } else {
