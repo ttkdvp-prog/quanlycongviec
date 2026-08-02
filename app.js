@@ -227,12 +227,82 @@ function switchTab(tabId) {
 // DATA LOADING & POPULATION
 // ==============================================================================
 
+function computeTaskStatus(t) {
+  const currentSt = t['Trạng thái'] || '';
+  if (currentSt === 'Đã hủy') return 'Đã hủy';
+
+  const doneDate = parseDateStr(t['Ngày làm xong']);
+  const endDate = parseDateStr(t['Ngày kết thúc'] || t['Hạn hoàn thành']);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (doneDate) {
+    doneDate.setHours(0, 0, 0, 0);
+    if (endDate) {
+      endDate.setHours(0, 0, 0, 0);
+      if (doneDate <= endDate) {
+        return 'Hoàn thành';
+      } else {
+        return 'Hoàn thành quá hạn';
+      }
+    } else {
+      return 'Hoàn thành';
+    }
+  } else {
+    if (endDate) {
+      endDate.setHours(0, 0, 0, 0);
+      if (today > endDate) {
+        return 'Quá hạn';
+      }
+    }
+    return currentSt && currentSt !== 'Quá hạn' ? currentSt : 'Đang thực hiện';
+  }
+}
+
+function parseDateStr(val) {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  const str = String(val).trim();
+  if (!str) return null;
+
+  if (str.includes('/')) {
+    const parts = str.split('/');
+    if (parts.length === 3) {
+      const d = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const y = parseInt(parts[2], 10);
+      if (!isNaN(d) && !isNaN(m) && !isNaN(y)) return new Date(y, m, d);
+    }
+  }
+  if (str.includes('-')) {
+    const parts = str.split('-');
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      if (!isNaN(d) && !isNaN(m) && !isNaN(y)) return new Date(y, m, d);
+    }
+  }
+  const p = new Date(str);
+  return isNaN(p.getTime()) ? null : p;
+}
+
 function loadAllData() {
   gasApi.call('getAllData')
     .then(res => {
-      if (res.tasks) state.tasks = res.tasks;
+      if (res.tasks) {
+        state.tasks = res.tasks.map(t => {
+          t['Trạng thái'] = computeTaskStatus(t);
+          return t;
+        });
+      }
       if (res.users) state.users = res.users;
-      if (res.ttTasks) state.ttTasks = res.ttTasks;
+      if (res.ttTasks) {
+        state.ttTasks = res.ttTasks.map(t => {
+          t['Trạng thái'] = computeTaskStatus(t);
+          return t;
+        });
+      }
       if (res.nhanvien) state.nhanvien = res.nhanvien;
       if (res.cvluuy) state.cvluuy = res.cvluuy;
       if (res.documents) state.documents = res.documents;
@@ -582,22 +652,27 @@ function handleInlineEdit(sheetName, id, field, value) {
   if (debounceTimers[key]) clearTimeout(debounceTimers[key]);
 
   debounceTimers[key] = setTimeout(() => {
-    const updateObj = { id: id };
-    updateObj[field] = value;
+    const list = sheetName === 'QLCV' ? state.tasks : state.ttTasks;
+    const item = list.find(x => String(x['ID']) === String(id));
+    
+    if (item) {
+      item[field] = value;
+      const newStatus = computeTaskStatus(item);
+      item['Trạng thái'] = newStatus;
 
-    const action = sheetName === 'QLCV' ? 'updateTaskInline' : 'updateTTTaskInline';
-    gasApi.call(action, updateObj)
-      .then(() => {
-        showToast(`Đã tự động lưu ${field}`, 'success');
-        // Update local object
-        const list = sheetName === 'QLCV' ? state.tasks : state.ttTasks;
-        const item = list.find(x => String(x['ID']) === String(id));
-        if (item) {
-          item[field] = value;
-          renderCurrentTab();
-        }
-      })
-      .catch(err => showToast('Lỗi lưu tự động: ' + err, 'error'));
+      renderCurrentTab();
+
+      const updateObj = { id: id };
+      updateObj[field] = value;
+      updateObj['Trạng thái'] = newStatus;
+
+      const action = sheetName === 'QLCV' ? 'updateTaskInline' : 'updateTTTaskInline';
+      gasApi.call(action, updateObj)
+        .then(() => {
+          showToast(`Đã lưu ${field} & cập nhật Trạng thái: "${newStatus}"`, 'success');
+        })
+        .catch(err => showToast('Lỗi lưu tự động: ' + err, 'error'));
+    }
   }, 500);
 }
 
@@ -1123,6 +1198,9 @@ function getFilteredTasks(taskList) {
 
 function getStatusBadgeHTML(status) {
   const st = (status || 'Đang thực hiện').trim();
+  if (st.toLowerCase() === 'hoàn thành quá hạn') {
+    return `<span class="badge badge-done-overdue"><i class="fa-solid fa-clock-rotate-left"></i> Hoàn thành quá hạn</span>`;
+  }
   if (st.toLowerCase().includes('hoàn thành')) return `<span class="badge badge-done"><i class="fa-solid fa-circle-check"></i> Hoàn thành</span>`;
   if (st.toLowerCase().includes('quá hạn')) return `<span class="badge badge-overdue"><i class="fa-solid fa-triangle-exclamation"></i> Quá hạn</span>`;
   if (st.toLowerCase().includes('hủy')) return `<span class="badge badge-canceled"><i class="fa-solid fa-ban"></i> Đã hủy</span>`;

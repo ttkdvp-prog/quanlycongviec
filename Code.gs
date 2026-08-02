@@ -439,6 +439,10 @@ function recalculateTaskRow(sheet, rowIdx, normHeaders) {
   var tyLeIdx = normHeaders.indexOf("Tỷ lệ");
   var tienDoIdx = normHeaders.indexOf("Tiến độ");
 
+  var ngayLamXongIdx = normHeaders.indexOf("Ngày làm xong");
+  var ngayKetThucIdx = normHeaders.indexOf("Ngày kết thúc");
+  var trangThaiIdx = normHeaders.indexOf("Trạng thái");
+
   if (keHoachIdx !== -1 && thucHienIdx !== -1) {
     var kh = parseFloat(sheet.getRange(rowIdx, keHoachIdx + 1).getValue()) || 0;
     var th = parseFloat(sheet.getRange(rowIdx, thucHienIdx + 1).getValue()) || 0;
@@ -451,6 +455,76 @@ function recalculateTaskRow(sheet, rowIdx, normHeaders) {
       sheet.getRange(rowIdx, tienDoIdx + 1).setValue(ratio + "%");
     }
   }
+
+  if (trangThaiIdx !== -1) {
+    var doneVal = ngayLamXongIdx !== -1 ? sheet.getRange(rowIdx, ngayLamXongIdx + 1).getValue() : "";
+    var endVal = ngayKetThucIdx !== -1 ? sheet.getRange(rowIdx, ngayKetThucIdx + 1).getValue() : "";
+    var currentSt = sheet.getRange(rowIdx, trangThaiIdx + 1).getValue();
+
+    var computedSt = calculateTaskStatusHelper(doneVal, endVal, currentSt);
+    if (computedSt && computedSt !== currentSt) {
+      sheet.getRange(rowIdx, trangThaiIdx + 1).setValue(computedSt);
+    }
+  }
+}
+
+function calculateTaskStatusHelper(doneDateVal, endDateVal, currentStatus) {
+  if (currentStatus === "Đã hủy") return "Đã hủy";
+
+  var doneDate = parseDateStringHelper(doneDateVal);
+  var endDate = parseDateStringHelper(endDateVal);
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (doneDate) {
+    doneDate.setHours(0, 0, 0, 0);
+    if (endDate) {
+      endDate.setHours(0, 0, 0, 0);
+      if (doneDate <= endDate) {
+        return "Hoàn thành";
+      } else {
+        return "Hoàn thành quá hạn";
+      }
+    } else {
+      return "Hoàn thành";
+    }
+  } else {
+    if (endDate) {
+      endDate.setHours(0, 0, 0, 0);
+      if (today > endDate) {
+        return "Quá hạn";
+      }
+    }
+    return currentStatus || "Đang thực hiện";
+  }
+}
+
+function parseDateStringHelper(val) {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  var str = String(val).trim();
+  if (!str) return null;
+
+  if (str.indexOf("/") !== -1) {
+    var parts = str.split("/");
+    if (parts.length === 3) {
+      var d = parseInt(parts[0], 10);
+      var m = parseInt(parts[1], 10) - 1;
+      var y = parseInt(parts[2], 10);
+      if (!isNaN(d) && !isNaN(m) && !isNaN(y)) return new Date(y, m, d);
+    }
+  }
+  if (str.indexOf("-") !== -1) {
+    var parts2 = str.split("-");
+    if (parts2.length === 3) {
+      var y2 = parseInt(parts2[0], 10);
+      var m2 = parseInt(parts2[1], 10) - 1;
+      var d2 = parseInt(parts2[2], 10);
+      if (!isNaN(d2) && !isNaN(m2) && !isNaN(y2)) return new Date(y2, m2, d2);
+    }
+  }
+  var p = new Date(str);
+  return isNaN(p.getTime()) ? null : p;
 }
 
 function getOriginalKey(obj, normKey) {
