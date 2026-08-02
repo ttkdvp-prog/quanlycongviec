@@ -1213,9 +1213,9 @@ function renderEvaluationView() {
     let ratingOrder = 4; // Rank 4: D
 
     if (u.total === 0) {
-      rating = 'B - Tốt';
-      ratingClass = 'rating-b';
-      ratingOrder = 2; // Rank 2: B for personnel with 0 tasks
+      rating = 'E - Chưa giao việc';
+      ratingClass = 'rating-e';
+      ratingOrder = 5; // Rank 5: E for personnel with 0 tasks
     } else if (rate >= 90) {
       rating = 'A - Xuất sắc';
       ratingClass = 'rating-a';
