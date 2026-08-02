@@ -19,7 +19,7 @@ if (apiParam) {
 }
 
 // DEFAULT FALLBACK API URL (Automatic connection for Vercel/External hosting)
-const DEFAULT_API_URL = localStorage.getItem('QLCV_API_URL') || '';
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbynXA9HEhpBuoZZKoovAO62aVcd7PL6d-oBe4HBFM_yfC3GbBxhJoonRZOnHKxmjzIb/exec';
 
 // STATE MANAGEMENT
 const state = {
