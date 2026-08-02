@@ -67,7 +67,7 @@ const gasApi = {
             }
           })
           .withFailureHandler((err) => {
-            reject(err ? err.toString() : 'Lỗi hệ thống Apps Script');
+            reject(err ? err.toString() : 'Lỗi hệ thống máy chủ');
           });
 
         const getCleanId = (d) => (d && typeof d === 'object') ? (d.id || d.ID || d.maNV || d) : d;
@@ -119,7 +119,7 @@ const gasApi = {
               res = JSON.parse(text);
             } catch (e) {
               if (text.trim().startsWith('<')) {
-                throw new Error('Apps Script trả về HTML thay vì JSON. Vui lòng kiểm tra lại URL Web App và đảm bảo khi Deploy đã chọn "Who has access" là "Anyone" (Bất kỳ ai).');
+                throw new Error('Máy chủ trả về phản hồi không hợp lệ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.');
               }
               throw new Error('Dữ liệu trả về không đúng định dạng JSON: ' + text.substring(0, 100));
             }
@@ -176,7 +176,7 @@ function initUI() {
   // Buttons
   document.getElementById('btn-sync').addEventListener('click', () => {
     loadAllData();
-    showToast('Đã bắt đầu đồng bộ dữ liệu từ Google Sheets', 'info');
+    showToast('Đã bắt đầu đồng bộ dữ liệu từ máy chủ', 'info');
   });
 
   const btnSettings = document.getElementById('btn-settings');
@@ -314,7 +314,7 @@ function switchTab(tabId) {
   const titles = {
     'tab-dashboard': 'Tổng quan',
     'tab-kanban': 'Bảng Kanban',
-    'tab-list': 'Danh sách Công việc (Sheet QLCV)',
+    'tab-list': 'Danh sách Công việc',
     'tab-tt': 'Tổ trưởng giao việc (Nội bộ tổ)',
     'tab-docs': 'Quản lý Tài liệu & Hợp đồng',
     'tab-users': 'Danh mục Người dùng',
@@ -1563,7 +1563,7 @@ function deleteTask(id) {
     showToast('Đã xóa công việc', 'success');
 
     gasApi.call('deleteTask', id)
-      .catch(err => showToast('Lỗi xóa công việc trên Google Sheets: ' + err, 'error'));
+      .catch(err => showToast('Lỗi xóa công việc trên máy chủ: ' + err, 'error'));
   }
 }
 
@@ -1576,7 +1576,7 @@ function deleteTTTask(id) {
     showToast('Đã xóa công việc tổ', 'success');
 
     gasApi.call('deleteTTTask', id)
-      .catch(err => showToast('Lỗi xóa trên Google Sheets: ' + err, 'error'));
+      .catch(err => showToast('Lỗi xóa dữ liệu máy chủ: ' + err, 'error'));
   }
 }
 
@@ -1588,7 +1588,7 @@ function deleteDocument(id) {
     showToast('Đã xóa tài liệu', 'success');
 
     gasApi.call('deleteDocument', id)
-      .catch(err => showToast('Lỗi xóa tài liệu trên Google Sheets: ' + err, 'error'));
+      .catch(err => showToast('Lỗi xóa tài liệu trên máy chủ: ' + err, 'error'));
   }
 }
 
@@ -1600,7 +1600,7 @@ function deleteUser(maNV) {
     showToast('Đã xóa nhân sự', 'success');
 
     gasApi.call('deleteUser', maNV)
-      .catch(err => showToast('Lỗi xóa nhân sự trên Google Sheets: ' + err, 'error'));
+      .catch(err => showToast('Lỗi xóa nhân sự trên máy chủ: ' + err, 'error'));
   }
 }
 
@@ -1612,7 +1612,7 @@ function deleteSpecialTask(id) {
     showToast('Đã xóa', 'success');
 
     gasApi.call('deleteSpecialTask', id)
-      .catch(err => showToast('Lỗi xóa trên Google Sheets: ' + err, 'error'));
+      .catch(err => showToast('Lỗi xóa dữ liệu máy chủ: ' + err, 'error'));
   }
 }
 
@@ -1912,14 +1912,14 @@ function confirmExcelImport() {
   closeModal('modal-excel-import');
   showToast(`Đã nhập thành công ${newTasks.length} công việc từ Excel!`, 'success');
 
-  // 3. Background sync to Google Sheets
+  // 3. Background sync
   gasApi.call('importTasks', newTasks)
     .then(res => {
-      showToast(res.message || `Đã đồng bộ ${newTasks.length} công việc lên Google Sheets!`, 'success');
+      showToast(res.message || `Đã đồng bộ ${newTasks.length} công việc!`, 'success');
     })
     .catch(err => {
       console.error('Lỗi đồng bộ Excel lên backend:', err);
-      showToast('Lỗi đồng bộ Excel lên Google Sheets: ' + err, 'error');
+      showToast('Lỗi đồng bộ dữ liệu Excel: ' + err, 'error');
     });
 }
 
