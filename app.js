@@ -599,16 +599,39 @@ function renderListView() {
     const ratio = kh > 0 ? Math.min(Math.round((th / kh) * 100), 100) : (th > 0 ? 100 : 0);
 
     const tr = document.createElement('tr');
+    const leaderCode = t['Mã LĐ'] || '';
+    const maA = t['Mã NV (A)'] || '';
+    const maR = t['Mã NV (R)'] || '';
+    const maC = t['Mã NV (C)'] || '';
+
     tr.innerHTML = `
       <td>${idx + 1}</td>
-      <td style="font-weight: 600; min-width: 180px;">${escapeHtml(t['Tiêu đề'] || '')}</td>
+      <td style="font-weight: 700; min-width: 180px; color: #60a5fa;">
+        <span style="color: #60a5fa;">${idx + 1}.</span> ${escapeHtml(t['Tiêu đề'] || '')}
+      </td>
       <td style="max-width: 220px; font-size: 0.8rem; color: var(--text-muted); white-space: pre-wrap; word-break: break-word;">${escapeHtml(t['Mô tả'] || '')}</td>
       <td>${getStatusBadgeHTML(t['Trạng thái'])}</td>
-      <td>${escapeHtml(t['Lãnh đạo'] || '-')}</td>
-      <td>${escapeHtml(t['Tổ chủ trì (AR)'] || '-')}</td>
-      <td><strong>${escapeHtml(t['Tên NV (A)'] || '-')}</strong></td>
-      <td>${escapeHtml(t['Tên NV (R)'] || '-')}</td>
-      <td>${escapeHtml(t['Tên NV (C)'] || '-')}</td>
+      <td>
+        <div style="font-weight: 600;">${escapeHtml(t['Lãnh đạo'] || '-')}</div>
+        ${leaderCode ? `<div style="font-size: 0.72rem; color: var(--text-sub);">${escapeHtml(leaderCode)}</div>` : ''}
+      </td>
+      <td>
+        <span class="badge" style="background: rgba(255, 255, 255, 0.08); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.12); font-weight: 500;">
+          ${escapeHtml(t['Tổ chủ trì (AR)'] || '-')}
+        </span>
+      </td>
+      <td>
+        <div style="font-weight: 700; color: #fff;">${escapeHtml(t['Tên NV (A)'] || '-')}</div>
+        ${maA ? `<div style="font-size: 0.72rem; color: var(--text-sub);">${escapeHtml(maA)}</div>` : ''}
+      </td>
+      <td>
+        <div style="font-weight: 500;">${escapeHtml(t['Tên NV (R)'] || '-')}</div>
+        ${maR ? `<div style="font-size: 0.72rem; color: var(--text-sub);">${escapeHtml(maR)}</div>` : ''}
+      </td>
+      <td>
+        <div style="font-weight: 500;">${escapeHtml(t['Tên NV (C)'] || '-')}</div>
+        ${maC ? `<div style="font-size: 0.72rem; color: var(--text-sub);">${escapeHtml(maC)}</div>` : ''}
+      </td>
       <td>${escapeHtml(t['Ngày bắt đầu'] || '-')}</td>
       <td>${escapeHtml(t['Ngày kết thúc'] || '-')}</td>
       
@@ -695,13 +718,24 @@ function renderTTView() {
     const ratio = kh > 0 ? Math.min(Math.round((th / kh) * 100), 100) : (th > 0 ? 100 : 0);
 
     const tr = document.createElement('tr');
+    const maR = t['Mã NV (R)'] || '';
+    const maC = t['Mã NV (C)'] || '';
+
     tr.innerHTML = `
       <td>${idx + 1}</td>
-      <td style="font-weight: 600;">${escapeHtml(t['Tiêu đề'] || '')}</td>
+      <td style="font-weight: 700; min-width: 180px; color: #60a5fa;">
+        <span style="color: #60a5fa;">${idx + 1}.</span> ${escapeHtml(t['Tiêu đề'] || '')}
+      </td>
       <td style="max-width: 220px; font-size: 0.8rem; color: var(--text-muted); white-space: pre-wrap; word-break: break-word;">${escapeHtml(t['Mô tả'] || '')}</td>
       <td>${getStatusBadgeHTML(t['Trạng thái'])}</td>
-      <td>${escapeHtml(t['Tên NV (R)'] || '-')}</td>
-      <td>${escapeHtml(t['Tên NV (C)'] || '-')}</td>
+      <td>
+        <div style="font-weight: 500;">${escapeHtml(t['Tên NV (R)'] || '-')}</div>
+        ${maR ? `<div style="font-size: 0.72rem; color: var(--text-sub);">${escapeHtml(maR)}</div>` : ''}
+      </td>
+      <td>
+        <div style="font-weight: 500;">${escapeHtml(t['Tên NV (C)'] || '-')}</div>
+        ${maC ? `<div style="font-size: 0.72rem; color: var(--text-sub);">${escapeHtml(maC)}</div>` : ''}
+      </td>
       <td>${escapeHtml(t['Ngày bắt đầu'] || '-')}</td>
       <td>${escapeHtml(t['Ngày kết thúc'] || '-')}</td>
       <td><input type="text" class="inline-edit-input" value="${escapeHtml(t['Ngày làm xong'] || '')}" onchange="handleInlineEdit('TT_giaoviec', '${t['ID']}', 'Ngày làm xong', this.value)"></td>
