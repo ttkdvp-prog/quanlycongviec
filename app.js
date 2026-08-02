@@ -179,10 +179,14 @@ function initUI() {
     showToast('Đã bắt đầu đồng bộ dữ liệu từ Google Sheets', 'info');
   });
 
-  document.getElementById('btn-settings').addEventListener('click', () => {
-    document.getElementById('setting-api-url').value = state.apiUrl;
-    openModal('modal-settings');
-  });
+  const btnSettings = document.getElementById('btn-settings');
+  if (btnSettings) {
+    btnSettings.addEventListener('click', () => {
+      const input = document.getElementById('setting-api-url');
+      if (input) input.value = state.apiUrl;
+      openModal('modal-settings');
+    });
+  }
 
   document.getElementById('btn-add-task').addEventListener('click', () => {
     openTaskModal();

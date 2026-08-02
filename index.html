@@ -125,9 +125,6 @@
           <button class="btn btn-secondary btn-icon" id="btn-sync" title="Đồng bộ GSheet">
             <i class="fa-solid fa-rotate"></i>
           </button>
-          <button class="btn btn-secondary btn-icon" id="btn-settings" title="Cấu hình REST API / Sheet ID">
-            <i class="fa-solid fa-gear"></i>
-          </button>
           <button class="btn btn-primary" id="btn-add-task">
             <i class="fa-solid fa-plus"></i>
             <span>Thêm mới</span>
@@ -707,30 +704,7 @@
     </div>
   </div>
 
-  <!-- ========================================== -->
-  <!-- MODAL: REST API / SHEET CONFIG             -->
-  <!-- ========================================== -->
-  <div class="modal-backdrop" id="modal-settings">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div class="modal-title"><i class="fa-solid fa-gear"></i> Cấu hình Độc lập (Vercel / Hosting)</div>
-        <button class="modal-close" onclick="closeModal('modal-settings')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group-full">
-          <label class="form-label">Apps Script Web App Exec URL (Dành cho chạy trên Vercel/Hosting)</label>
-          <input type="text" id="setting-api-url" class="form-control" placeholder="https://script.google.com/macros/s/AKfycbynXA9HEhpBuoZZKoovAO62aVcd7PL6d-oBe4HBFM_yfC3GbBxhJoonRZOnHKxmjzIb/exec">
-          <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
-            Nếu ứng dụng chạy trực tiếp trên Google Apps Script (HTML Service), URL này không cần thiết.
-          </span>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-settings')">Đóng</button>
-        <button type="button" class="btn btn-primary" onclick="saveSettings()">Lưu cấu hình</button>
-      </div>
-    </div>
-  </div>
+
 
   <!-- ========================================== -->
   <!-- MODAL: EXCEL IMPORT                        -->
