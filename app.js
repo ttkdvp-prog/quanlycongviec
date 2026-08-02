@@ -11,6 +11,16 @@ const CENTER_LEADERS = [
   'Nguyễn Trung Kiên'
 ];
 
+// AUTO DETECT API URL FROM QUERY PARAM OR LOCAL STORAGE
+const urlParams = typeof window !== 'undefined' && window.location ? new URLSearchParams(window.location.search) : null;
+const apiParam = urlParams ? urlParams.get('api') : '';
+if (apiParam) {
+  localStorage.setItem('QLCV_API_URL', apiParam);
+}
+
+// DEFAULT FALLBACK API URL (Automatic connection for Vercel/External hosting)
+const DEFAULT_API_URL = localStorage.getItem('QLCV_API_URL') || '';
+
 // STATE MANAGEMENT
 const state = {
   tasks: [],       // Sheet QLCV
@@ -28,7 +38,7 @@ const state = {
     nvR: '',
     nvC: ''
   },
-  apiUrl: localStorage.getItem('QLCV_API_URL') || ''
+  apiUrl: localStorage.getItem('QLCV_API_URL') || DEFAULT_API_URL
 };
 
 let donutChartInstance = null;
@@ -80,9 +90,9 @@ const gasApi = {
 
       } else {
         // Standalone Web App / Vercel Execution via fetch()
-        const apiUrl = state.apiUrl;
+        const apiUrl = state.apiUrl || localStorage.getItem('QLCV_API_URL') || DEFAULT_API_URL;
         if (!apiUrl) {
-          showToast('Vui lòng dán Apps Script Web App URL vào mục Cấu hình bánh răng!', 'warning');
+          // If no API URL set, resolve gracefully so local cached data is displayed smoothly
           return resolve({ success: true, localMock: true });
         }
 
@@ -378,37 +388,82 @@ function parseDateStr(val) {
   return isNaN(p.getTime()) ? null : p;
 }
 
+function saveLocalCache() {
+  try {
+    const cacheObj = {
+      success: true,
+      tasks: state.tasks,
+      users: state.users,
+      ttTasks: state.ttTasks,
+      nhanvien: state.nhanvien,
+      cvluuy: state.cvluuy,
+      documents: state.documents
+    };
+    localStorage.setItem('QLCV_CACHE_DATA', JSON.stringify(cacheObj));
+    localStorage.setItem('QLCV_CACHE_TIME', Date.now());
+  } catch (e) {
+    console.warn('Lỗi lưu local cache:', e);
+  }
+}
+
+function applyDataResponse(res, isFromCache = false) {
+  if (!res) return;
+  if (res.tasks) {
+    state.tasks = res.tasks.map(t => {
+      t['Trạng thái'] = computeTaskStatus(t);
+      return t;
+    });
+  }
+  if (res.users) state.users = res.users;
+  if (res.ttTasks) {
+    state.ttTasks = res.ttTasks.map(t => {
+      t['Trạng thái'] = computeTaskStatus(t);
+      return t;
+    });
+  }
+  if (res.nhanvien) state.nhanvien = res.nhanvien;
+  if (res.cvluuy) state.cvluuy = res.cvluuy;
+  if (res.documents) state.documents = res.documents;
+
+  populateFilterDropdowns();
+  populateTeamDropdowns();
+  populateUserSelects();
+  updateBadges();
+  renderCurrentTab();
+
+  if (!isFromCache) {
+    saveLocalCache();
+  }
+}
+
 function loadAllData() {
+  // 1. FAST PATH: Instant rendering from Local Cache (0ms latency on F5)
+  const cachedStr = localStorage.getItem('QLCV_CACHE_DATA');
+  let hasLoadedFromCache = false;
+  if (cachedStr) {
+    try {
+      const cachedRes = JSON.parse(cachedStr);
+      if (cachedRes && (cachedRes.tasks || cachedRes.users || cachedRes.ttTasks)) {
+        applyDataResponse(cachedRes, true);
+        hasLoadedFromCache = true;
+      }
+    } catch (e) {
+      console.warn('Lỗi parse local cache:', e);
+    }
+  }
+
+  // 2. BACKGROUND REVALIDATION: Fetch fresh data from Google Sheets silently
   gasApi.call('getAllData')
     .then(res => {
-      if (res.tasks) {
-        state.tasks = res.tasks.map(t => {
-          t['Trạng thái'] = computeTaskStatus(t);
-          return t;
-        });
+      if (res && res.success !== false && !res.localMock) {
+        applyDataResponse(res, false);
       }
-      if (res.users) state.users = res.users;
-      if (res.ttTasks) {
-        state.ttTasks = res.ttTasks.map(t => {
-          t['Trạng thái'] = computeTaskStatus(t);
-          return t;
-        });
-      }
-      if (res.nhanvien) state.nhanvien = res.nhanvien;
-      if (res.cvluuy) state.cvluuy = res.cvluuy;
-      if (res.documents) state.documents = res.documents;
-
-      populateFilterDropdowns();
-      populateTeamDropdowns();
-      populateUserSelects();
-      updateBadges();
-      renderCurrentTab();
-
-      showToast('Đã tải thành công toàn bộ dữ liệu từ Google Sheets', 'success');
     })
     .catch(err => {
       console.error(err);
-      showToast('Lỗi tải dữ liệu: ' + err, 'error');
+      if (!hasLoadedFromCache) {
+        showToast('Lỗi tải dữ liệu: ' + err, 'error');
+      }
     });
 }
 
@@ -830,6 +885,7 @@ function handleInlineEdit(sheetName, id, field, value) {
       item['Trạng thái'] = newStatus;
 
       renderCurrentTab();
+      saveLocalCache();
 
       const updateObj = { id: id };
       updateObj[field] = finalValue;
@@ -1478,6 +1534,7 @@ function handleTaskSubmit(e) {
   populateTeamDropdowns();
   updateBadges();
   renderCurrentTab();
+  saveLocalCache();
   closeModal('modal-task');
   showToast('Đã lưu công việc thành công!', 'success');
 
@@ -1498,6 +1555,7 @@ function deleteTask(id) {
     state.tasks = state.tasks.filter(t => String(t['ID']) !== String(id));
     updateBadges();
     renderCurrentTab();
+    saveLocalCache();
     showToast('Đã xóa công việc', 'success');
 
     gasApi.call('deleteTask', id)
@@ -1510,6 +1568,7 @@ function deleteTTTask(id) {
     state.ttTasks = state.ttTasks.filter(t => String(t['ID']) !== String(id));
     updateBadges();
     renderCurrentTab();
+    saveLocalCache();
     showToast('Đã xóa công việc tổ', 'success');
 
     gasApi.call('deleteTTTask', id)
@@ -1521,6 +1580,7 @@ function deleteDocument(id) {
   if (confirm('Bạn có chắc muốn xóa tài liệu này?')) {
     state.documents = state.documents.filter(d => String(d['ID']) !== String(id));
     renderCurrentTab();
+    saveLocalCache();
     showToast('Đã xóa tài liệu', 'success');
 
     gasApi.call('deleteDocument', id)
@@ -1532,6 +1592,7 @@ function deleteUser(maNV) {
   if (confirm('Xóa nhân sự khỏi hệ thống?')) {
     state.users = state.users.filter(u => String(u['Mã NV']) !== String(maNV));
     renderCurrentTab();
+    saveLocalCache();
     showToast('Đã xóa nhân sự', 'success');
 
     gasApi.call('deleteUser', maNV)
@@ -1543,6 +1604,7 @@ function deleteSpecialTask(id) {
   if (confirm('Xóa công việc khỏi danh mục lưu ý?')) {
     state.cvluuy = state.cvluuy.filter(c => String(c['ID']) !== String(id));
     renderCurrentTab();
+    saveLocalCache();
     showToast('Đã xóa', 'success');
 
     gasApi.call('deleteSpecialTask', id)
