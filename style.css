@@ -668,6 +668,25 @@ body {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
+.custom-table tfoot {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+}
+
+.custom-table tfoot td,
+.custom-table tfoot th {
+  background: linear-gradient(135deg, #1e1b4b, #2e1065);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.85rem 0.9rem;
+  border-top: 2px solid rgba(139, 92, 246, 0.6);
+  border-bottom: 2px solid rgba(139, 92, 246, 0.6);
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+}
+
 .custom-table td {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border-glass);

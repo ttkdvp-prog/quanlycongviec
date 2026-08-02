@@ -685,6 +685,31 @@ function renderListView() {
     `;
     tbody.appendChild(tr);
   });
+
+  const tfootQLCV = document.getElementById('tfoot-qlcv');
+  if (tfootQLCV) {
+    let sumKH = 0, sumTH = 0, countDone = 0, countOverdue = 0;
+    filteredTasks.forEach(t => {
+      sumKH += parseFloat(t['Kế hoạch']) || 0;
+      sumTH += parseFloat(t['Thực hiện']) || 0;
+      const st = (t['Trạng thái'] || '').toLowerCase();
+      if (st.includes('hoàn thành')) countDone++;
+      if (st.includes('quá hạn')) countOverdue++;
+    });
+    const avgRatio = sumKH > 0 ? Math.min(Math.round((sumTH / sumKH) * 100), 100) : (sumTH > 0 ? 100 : 0);
+
+    tfootQLCV.innerHTML = `
+      <tr>
+        <td colspan="3" style="text-align: right; font-weight: 700; color: #a7f3d0;">TỔNG CỘNG (${filteredTasks.length} VIỆC):</td>
+        <td colspan="9" style="font-size: 0.8rem; color: #cbd5e1;">Đã hoàn thành: <strong style="color:var(--accent-emerald);">${countDone}</strong> | Quá hạn: <strong style="color:var(--accent-rose);">${countOverdue}</strong></td>
+        <td style="font-weight: 800; color: #fff;">${avgRatio}%</td>
+        <td style="font-weight: 800; color: #fff;">${sumKH}</td>
+        <td style="font-weight: 800; color: var(--accent-emerald);">${sumTH}</td>
+        <td style="font-weight: 800; color: var(--accent-emerald);">${avgRatio}%</td>
+        <td colspan="2"></td>
+      </tr>
+    `;
+  }
 }
 
 // INLINE DEBOUNCED EDIT HANDLER
@@ -770,6 +795,31 @@ function renderTTView() {
     `;
     tbody.appendChild(tr);
   });
+
+  const tfootTT = document.getElementById('tfoot-tt');
+  if (tfootTT) {
+    let sumKH = 0, sumTH = 0, countDone = 0, countOverdue = 0;
+    state.ttTasks.forEach(t => {
+      sumKH += parseFloat(t['Kế hoạch']) || 0;
+      sumTH += parseFloat(t['Thực hiện']) || 0;
+      const st = (t['Trạng thái'] || '').toLowerCase();
+      if (st.includes('hoàn thành')) countDone++;
+      if (st.includes('quá hạn')) countOverdue++;
+    });
+    const avgRatio = sumKH > 0 ? Math.min(Math.round((sumTH / sumKH) * 100), 100) : (sumTH > 0 ? 100 : 0);
+
+    tfootTT.innerHTML = `
+      <tr>
+        <td colspan="3" style="text-align: right; font-weight: 700; color: #a7f3d0;">TỔNG CỘNG CÔNG VIỆC TỔ (${state.ttTasks.length} VIỆC):</td>
+        <td colspan="6" style="font-size: 0.8rem; color: #cbd5e1;">Hoàn thành: <strong style="color:var(--accent-emerald);">${countDone}</strong> | Quá hạn: <strong style="color:var(--accent-rose);">${countOverdue}</strong></td>
+        <td style="font-weight: 800; color: #fff;">${avgRatio}%</td>
+        <td style="font-weight: 800; color: #fff;">${sumKH}</td>
+        <td style="font-weight: 800; color: var(--accent-emerald);">${sumTH}</td>
+        <td style="font-weight: 800; color: var(--accent-emerald);">${avgRatio}%</td>
+        <td colspan="2"></td>
+      </tr>
+    `;
+  }
 }
 
 // ==============================================================================
@@ -864,8 +914,18 @@ function renderStatsView() {
     return;
   }
 
+  let totalTasks = 0;
+  let totalDoing = 0;
+  let totalDone = 0;
+  let totalOverdue = 0;
+
   teams.forEach((team, idx) => {
     const s = statsMap[team];
+    totalTasks += s.total;
+    totalDoing += s.doing;
+    totalDone += s.done;
+    totalOverdue += s.overdue;
+
     const rate = s.total > 0 ? Math.round((s.done / s.total) * 100) : 0;
 
     const tr = document.createElement('tr');
@@ -883,6 +943,24 @@ function renderStatsView() {
     `;
     tbody.appendChild(tr);
   });
+
+  const overallRate = totalTasks > 0 ? Math.round((totalDone / totalTasks) * 100) : 0;
+  const tfoot = document.getElementById('tfoot-stats');
+  if (tfoot) {
+    tfoot.innerHTML = `
+      <tr>
+        <td colspan="2" style="text-align: right; font-weight: 700; color: #a7f3d0;">TỔNG CỘNG ĐƠN VỊ:</td>
+        <td style="font-weight: 800; color: #fff;">${totalTasks}</td>
+        <td style="color: var(--accent-cyan); font-weight: 700;">${totalDoing}</td>
+        <td style="color: var(--accent-emerald); font-weight: 800;">${totalDone}</td>
+        <td style="color: var(--accent-rose); font-weight: 700;">${totalOverdue}</td>
+        <td>
+          <div class="progress-bar-container"><div class="progress-bar-fill" style="width: ${overallRate}%;"></div></div>
+          <strong style="color: var(--accent-emerald); font-weight: 800;">${overallRate}%</strong>
+        </td>
+      </tr>
+    `;
+  }
 }
 
 // ==============================================================================
@@ -942,8 +1020,22 @@ function renderEvaluationView() {
     return;
   }
 
+  let sumTotal = 0;
+  let sumLeadA = 0;
+  let sumCoR = 0;
+  let sumDoing = 0;
+  let sumDone = 0;
+  let sumOverdue = 0;
+
   names.forEach((name, idx) => {
     const u = userStats[name];
+    sumTotal += u.total;
+    sumLeadA += u.leadA;
+    sumCoR += u.coR;
+    sumDoing += u.doing;
+    sumDone += u.done;
+    sumOverdue += u.overdue;
+
     const rate = u.total > 0 ? Math.round((u.done / u.total) * 100) : 0;
 
     // Rating logic: A >= 90%, B >= 70%, C >= 50%, D < 50%
@@ -951,7 +1043,7 @@ function renderEvaluationView() {
     let ratingClass = 'rating-d';
     if (rate >= 90) { rating = 'A - Xuất sắc'; ratingClass = 'rating-a'; }
     else if (rate >= 70) { rating = 'B - Tốt'; ratingClass = 'rating-b'; }
-    else if (rate >= 50) { rating = 'C - Dat'; ratingClass = 'rating-c'; }
+    else if (rate >= 50) { rating = 'C - Đạt'; ratingClass = 'rating-c'; }
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -969,6 +1061,31 @@ function renderEvaluationView() {
     `;
     tbody.appendChild(tr);
   });
+
+  const overallEvalRate = sumTotal > 0 ? Math.round((sumDone / sumTotal) * 100) : 0;
+  let overallRating = 'B - Tốt';
+  let overallRatingClass = 'rating-b';
+  if (overallEvalRate >= 90) { overallRating = 'A - Xuất sắc'; overallRatingClass = 'rating-a'; }
+  else if (overallEvalRate >= 70) { overallRating = 'B - Tốt'; overallRatingClass = 'rating-b'; }
+  else if (overallEvalRate >= 50) { overallRating = 'C - Đạt'; overallRatingClass = 'rating-c'; }
+  else { overallRating = 'D - Chưa đạt'; overallRatingClass = 'rating-d'; }
+
+  const tfootEval = document.getElementById('tfoot-eval');
+  if (tfootEval) {
+    tfootEval.innerHTML = `
+      <tr>
+        <td colspan="3" style="text-align: right; font-weight: 700; color: #a7f3d0;">TỔNG CỘNG TOÀN ĐƠN VỊ (${names.length} NV):</td>
+        <td style="font-weight: 800; color: #fff;">${sumTotal}</td>
+        <td style="font-weight: 700;">${sumLeadA}</td>
+        <td style="font-weight: 700;">${sumCoR}</td>
+        <td style="color: var(--accent-cyan); font-weight: 700;">${sumDoing}</td>
+        <td style="color: var(--accent-emerald); font-weight: 800;">${sumDone}</td>
+        <td style="color: var(--accent-rose); font-weight: 700;">${sumOverdue}</td>
+        <td style="font-weight: 800; color: var(--accent-emerald);">${overallEvalRate}%</td>
+        <td><span class="badge ${overallRatingClass}">${overallRating}</span></td>
+      </tr>
+    `;
+  }
 }
 
 // ==============================================================================
