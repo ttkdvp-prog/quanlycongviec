@@ -175,8 +175,29 @@ function apiGetSheetData(sheetName) {
 
 function apiGetUsersData() {
   var ss = getSpreadsheet();
-  var sheet = getSheetByNameFlexible(ss, "user") || getSheetByNameFlexible(ss, "Nguoidung") || getSheetByNameFlexible(ss, "Users");
-  if (!sheet) return [];
+  var sheet = getSheetByNameFlexible(ss, "user") || 
+              getSheetByNameFlexible(ss, "User") || 
+              getSheetByNameFlexible(ss, "Users") || 
+              getSheetByNameFlexible(ss, "Nguoidung") || 
+              getSheetByNameFlexible(ss, "nhanvien");
+  
+  if (!sheet) {
+    var sheets = ss.getSheets();
+    for (var i = 0; i < sheets.length; i++) {
+      var sName = sheets[i].getName().toLowerCase();
+      if (sName.indexOf("user") !== -1 || sName.indexOf("nguoi") !== -1 || sName.indexOf("nhan") !== -1) {
+        return apiGetSheetData(sheets[i].getName());
+      }
+    }
+    for (var j = 0; j < sheets.length; j++) {
+      var headers = sheets[j].getRange(1, 1, 1, Math.min(sheets[j].getLastColumn(), 10)).getValues()[0];
+      var hStr = headers.join(" ").toLowerCase();
+      if (hStr.indexOf("tên") !== -1 || hStr.indexOf("mã nv") !== -1) {
+        return apiGetSheetData(sheets[j].getName());
+      }
+    }
+    return [];
+  }
   return apiGetSheetData(sheet.getName());
 }
 
@@ -346,8 +367,11 @@ function normalizeHeaderKey(header) {
     "tổ": "Tổ",
     "tổ hạ tầng": "Tổ",
     "mã nv": "Mã NV",
+    "mã nhân viên": "Mã NV",
     "tên": "Tên",
-    "tên nv": "Tên NV",
+    "tên nv": "Tên",
+    "tên nhân viên": "Tên",
+    "họ và tên": "Tên",
     "chức vụ": "Chức vụ"
   };
 

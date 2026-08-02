@@ -1010,6 +1010,23 @@ function renderSpecialView() {
 // Priority 3: All remaining personnel in Unit
 // ==============================================================================
 
+function getPersonProp(u, type) {
+  if (!u) return '';
+  if (type === 'name') {
+    return u['Tên'] || u['Tên NV'] || u['Tên nv'] || u['Họ và tên'] || u['TÊN'] || u['FullName'] || u['Name'] || '';
+  }
+  if (type === 'ma') {
+    return u['Mã NV'] || u['Mã nv'] || u['MÃ NV'] || u['MaNV'] || u['Code'] || '';
+  }
+  if (type === 'team') {
+    return u['Tổ'] || u['Tổ hạ tầng'] || u['TỔ'] || u['Team'] || '';
+  }
+  if (type === 'pos') {
+    return u['Chức vụ'] || u['chức vụ'] || u['CHỨC VỤ'] || u['Role'] || '';
+  }
+  return '';
+}
+
 function populateUserSelects(selectedTeam = '') {
   const selectA = document.getElementById('task-nv-a');
   const selectR = document.getElementById('task-nv-r');
@@ -1023,16 +1040,35 @@ function populateUserSelects(selectedTeam = '') {
 
   const normTeam = (selectedTeam || document.getElementById('task-ar-team')?.value || '').toLowerCase().trim();
 
+  let rawList = [...state.users];
+  if (rawList.length === 0 && state.nhanvien && state.nhanvien.length > 0) {
+    rawList = [...state.nhanvien];
+  }
+
+  // If rawList is still empty, extract unique names from state.tasks
+  if (rawList.length === 0 && state.tasks) {
+    const nameMap = new Map();
+    state.tasks.forEach(t => {
+      ['Tên NV (A)', 'Tên NV (R)', 'Tên NV (C)'].forEach(k => {
+        const val = (t[k] || '').trim();
+        if (val && !nameMap.has(val)) {
+          nameMap.set(val, { 'Tên': val, 'Tổ': t['Tổ chủ trì (AR)'] || 'Đơn vị', 'Chức vụ': 'Nhân viên' });
+        }
+      });
+    });
+    rawList = Array.from(nameMap.values());
+  }
+
   // 3-tier Priority Sorting from Sheet User ONLY
-  const sortedUsers = [...state.users].sort((a, b) => {
-    const nameA = a['Tên'] || a['Tên NV'] || a['Tên nv'] || a['Họ và tên'] || '';
-    const nameB = b['Tên'] || b['Tên NV'] || b['Tên nv'] || b['Họ và tên'] || '';
+  const sortedUsers = rawList.sort((a, b) => {
+    const nameA = getPersonProp(a, 'name');
+    const nameB = getPersonProp(b, 'name');
 
-    const teamA = (a['Tổ'] || a['Tổ hạ tầng'] || '').toLowerCase().trim();
-    const teamB = (b['Tổ'] || b['Tổ hạ tầng'] || '').toLowerCase().trim();
+    const teamA = getPersonProp(a, 'team').toLowerCase().trim();
+    const teamB = getPersonProp(b, 'team').toLowerCase().trim();
 
-    const isLeadA = (a['Chức vụ'] || '').toLowerCase().match(/tổ trưởng|tổ phó|key|trưởng/i);
-    const isLeadB = (b['Chức vụ'] || '').toLowerCase().match(/tổ trưởng|tổ phó|key|trưởng/i);
+    const isLeadA = getPersonProp(a, 'pos').toLowerCase().match(/tổ trưởng|tổ phó|key|trưởng/i);
+    const isLeadB = getPersonProp(b, 'pos').toLowerCase().match(/tổ trưởng|tổ phó|key|trưởng/i);
 
     if (normTeam && teamA === normTeam && teamB !== normTeam) return -1;
     if (normTeam && teamB === normTeam && teamA !== normTeam) return 1;
@@ -1048,10 +1084,10 @@ function populateUserSelects(selectedTeam = '') {
   const generateOptionsHTML = (defaultLabel) => {
     let html = `<option value="">${defaultLabel}</option>`;
     sortedUsers.forEach(u => {
-      const name = u['Tên'] || u['Tên NV'] || u['Tên nv'] || u['Họ và tên'] || '';
-      const ma = u['Mã NV'] || u['Mã nv'] || '';
-      const team = u['Tổ'] || u['Tổ hạ tầng'] || '';
-      const pos = u['Chức vụ'] || u['chức vụ'] || '';
+      const name = getPersonProp(u, 'name');
+      const ma = getPersonProp(u, 'ma');
+      const team = getPersonProp(u, 'team');
+      const pos = getPersonProp(u, 'pos');
 
       if (name) {
         let label = name;
