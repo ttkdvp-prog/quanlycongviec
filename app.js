@@ -729,7 +729,7 @@ function renderListView() {
   const tfootQLCV = document.getElementById('tfoot-qlcv');
   if (tfootQLCV) {
     let sumKH = 0, sumTH = 0, countDone = 0, countOverdue = 0;
-    filteredTasks.forEach(t => {
+    filtered.forEach(t => {
       sumKH += parseFloat(t['Kế hoạch']) || 0;
       sumTH += parseFloat(t['Thực hiện']) || 0;
       const st = (t['Trạng thái'] || '').toLowerCase();
@@ -740,7 +740,7 @@ function renderListView() {
 
     tfootQLCV.innerHTML = `
       <tr>
-        <td colspan="3" style="text-align: right; font-weight: 700; color: #a7f3d0;">TỔNG CỘNG (${filteredTasks.length} VIỆC):</td>
+        <td colspan="3" style="text-align: right; font-weight: 700; color: #a7f3d0;">TỔNG CỘNG (${filtered.length} VIỆC):</td>
         <td colspan="9" style="font-size: 0.8rem; color: #cbd5e1;">Đã hoàn thành: <strong style="color:var(--accent-emerald);">${countDone}</strong> | Quá hạn: <strong style="color:var(--accent-rose);">${countOverdue}</strong></td>
         <td style="font-weight: 800; color: #fff;">${avgRatio}%</td>
         <td style="font-weight: 800; color: #fff;">${sumKH}</td>
@@ -1369,9 +1369,9 @@ function handleTaskSubmit(e) {
   const selR = document.getElementById('task-nv-r');
   const selC = document.getElementById('task-nv-c');
 
-  const optA = selA ? selA.options[selA.selectedIndex] : null;
-  const optR = selR ? selR.options[selR.selectedIndex] : null;
-  const optC = selC ? selC.options[selC.selectedIndex] : null;
+  const optA = selA && selA.selectedIndex >= 0 ? selA.options[selA.selectedIndex] : null;
+  const optR = selR && selR.selectedIndex >= 0 ? selR.options[selR.selectedIndex] : null;
+  const optC = selC && selC.selectedIndex >= 0 ? selC.options[selC.selectedIndex] : null;
 
   const maA = optA ? (optA.getAttribute('data-ma') || '') : '';
   const maR = optR ? (optR.getAttribute('data-ma') || '') : '';
@@ -1399,13 +1399,31 @@ function handleTaskSubmit(e) {
     'Ghi chú': document.getElementById('task-note').value
   };
 
+  // Tính toán tự động trạng thái chuẩn xác
+  taskData['Trạng thái'] = computeTaskStatus(taskData);
+
+  // 1. Tối ưu trải nghiệm: Cập nhật ngay vào state bộ nhớ (Optimistic UI Update)
+  const existingIdx = state.tasks.findIndex(x => String(x['ID']) === String(taskData.ID));
+  if (existingIdx >= 0) {
+    state.tasks[existingIdx] = { ...state.tasks[existingIdx], ...taskData };
+  } else {
+    state.tasks.unshift(taskData);
+  }
+
+  // 2. Cập nhật giao diện & đóng Modal ngay lập tức (Tốc độ 0ms)
+  populateFilterDropdowns();
+  populateTeamDropdowns();
+  updateBadges();
+  renderCurrentTab();
+  closeModal('modal-task');
+  showToast('Đã lưu công việc thành công!', 'success');
+
+  // 3. Gửi đồng bộ lên Google Sheets ở nền (Async Background Sync)
   gasApi.call('saveTask', taskData)
-    .then(() => {
-      showToast('Đã lưu công việc thành công!', 'success');
-      closeModal('modal-task');
-      loadAllData();
-    })
-    .catch(err => showToast('Lỗi lưu công việc: ' + err, 'error'));
+    .catch(err => {
+      console.error('Lỗi đồng bộ Google Sheets:', err);
+      showToast('Lỗi đồng bộ backend: ' + err, 'error');
+    });
 }
 
 function editTask(id) {
@@ -1414,56 +1432,58 @@ function editTask(id) {
 
 function deleteTask(id) {
   if (confirm('Bạn có chắc chắn muốn xóa công việc này?')) {
+    state.tasks = state.tasks.filter(t => String(t['ID']) !== String(id));
+    updateBadges();
+    renderCurrentTab();
+    showToast('Đã xóa công việc', 'success');
+
     gasApi.call('deleteTask', id)
-      .then(() => {
-        showToast('Đã xóa công việc', 'success');
-        loadAllData();
-      })
-      .catch(err => showToast('Lỗi xóa công việc: ' + err, 'error'));
+      .catch(err => showToast('Lỗi xóa công việc trên Google Sheets: ' + err, 'error'));
   }
 }
 
 function deleteTTTask(id) {
   if (confirm('Bạn có chắc muốn xóa công việc nội bộ tổ này?')) {
+    state.ttTasks = state.ttTasks.filter(t => String(t['ID']) !== String(id));
+    updateBadges();
+    renderCurrentTab();
+    showToast('Đã xóa công việc tổ', 'success');
+
     gasApi.call('deleteTTTask', id)
-      .then(() => {
-        showToast('Đã xóa công việc tổ', 'success');
-        loadAllData();
-      })
-      .catch(err => showToast('Lỗi xóa: ' + err, 'error'));
+      .catch(err => showToast('Lỗi xóa trên Google Sheets: ' + err, 'error'));
   }
 }
 
 function deleteDocument(id) {
   if (confirm('Bạn có chắc muốn xóa tài liệu này?')) {
+    state.documents = state.documents.filter(d => String(d['ID']) !== String(id));
+    renderCurrentTab();
+    showToast('Đã xóa tài liệu', 'success');
+
     gasApi.call('deleteDocument', id)
-      .then(() => {
-        showToast('Đã xóa tài liệu', 'success');
-        loadAllData();
-      })
-      .catch(err => showToast('Lỗi xóa: ' + err, 'error'));
+      .catch(err => showToast('Lỗi xóa tài liệu trên Google Sheets: ' + err, 'error'));
   }
 }
 
 function deleteUser(maNV) {
   if (confirm('Xóa nhân sự khỏi hệ thống?')) {
+    state.users = state.users.filter(u => String(u['Mã NV']) !== String(maNV));
+    renderCurrentTab();
+    showToast('Đã xóa nhân sự', 'success');
+
     gasApi.call('deleteUser', maNV)
-      .then(() => {
-        showToast('Đã xóa nhân sự', 'success');
-        loadAllData();
-      })
-      .catch(err => showToast('Lỗi xóa: ' + err, 'error'));
+      .catch(err => showToast('Lỗi xóa nhân sự trên Google Sheets: ' + err, 'error'));
   }
 }
 
 function deleteSpecialTask(id) {
   if (confirm('Xóa công việc khỏi danh mục lưu ý?')) {
+    state.cvluuy = state.cvluuy.filter(c => String(c['ID']) !== String(id));
+    renderCurrentTab();
+    showToast('Đã xóa', 'success');
+
     gasApi.call('deleteSpecialTask', id)
-      .then(() => {
-        showToast('Đã xóa', 'success');
-        loadAllData();
-      })
-      .catch(err => showToast('Lỗi xóa: ' + err, 'error'));
+      .catch(err => showToast('Lỗi xóa trên Google Sheets: ' + err, 'error'));
   }
 }
 
