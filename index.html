@@ -474,28 +474,28 @@
           </div>
 
           <!-- PERSON A SELECTOR WITH PRIORITY & AUTO-FILL -->
-          <div class="autocomplete-wrap">
+          <div>
             <label class="form-label">Tên NV (A) - Chủ trì <span class="text-rose-500">*</span></label>
-            <input type="text" id="task-nv-a" list="dl-users-a" class="form-control" placeholder="Bấm chọn hoặc gõ tìm NV (A)..." autocomplete="off" required>
-            <datalist id="dl-users-a"></datalist>
+            <select id="task-nv-a" class="form-control" required>
+              <option value="">-- Chọn Tên NV (A) --</option>
+            </select>
             <input type="hidden" id="task-ma-a">
-            <div class="suggestions-box" id="sug-nv-a"></div>
           </div>
 
-          <div class="autocomplete-wrap">
+          <div>
             <label class="form-label">Tên NV (R) - Phối hợp</label>
-            <input type="text" id="task-nv-r" list="dl-users-r" class="form-control" placeholder="Bấm chọn hoặc gõ tìm NV (R)..." autocomplete="off">
-            <datalist id="dl-users-r"></datalist>
+            <select id="task-nv-r" class="form-control">
+              <option value="">-- Chọn Tên NV (R) --</option>
+            </select>
             <input type="hidden" id="task-ma-r">
-            <div class="suggestions-box" id="sug-nv-r"></div>
           </div>
 
-          <div class="autocomplete-wrap">
+          <div>
             <label class="form-label">Tên NV (C) - Tư vấn / Hỗ trợ</label>
-            <input type="text" id="task-nv-c" list="dl-users-c" class="form-control" placeholder="Bấm chọn hoặc gõ tìm NV (C)..." autocomplete="off">
-            <datalist id="dl-users-c"></datalist>
+            <select id="task-nv-c" class="form-control">
+              <option value="">-- Chọn Tên NV (C) --</option>
+            </select>
             <input type="hidden" id="task-ma-c">
-            <div class="suggestions-box" id="sug-nv-c"></div>
           </div>
 
           <div>

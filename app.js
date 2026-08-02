@@ -175,9 +175,11 @@ function initUI() {
     openTaskModal();
   });
 
-  // Task Form auto-fill A when AR Team selected
+  // Task Form auto-fill A and prioritize users when AR Team selected
   document.getElementById('task-ar-team').addEventListener('change', (e) => {
     const selectedTeam = e.target.value;
+    populateUserSelects(selectedTeam);
+
     if (selectedTeam) {
       // Find team leader / vice leader for selected team
       const lead = state.users.find(u => 
@@ -186,16 +188,12 @@ function initUI() {
       ) || state.users.find(u => (u['Tổ'] || '').toLowerCase().trim() === selectedTeam.toLowerCase().trim());
 
       if (lead) {
-        document.getElementById('task-nv-a').value = lead['Tên'] || lead['Tên NV'] || '';
-        document.getElementById('task-ma-a').value = lead['Mã NV'] || '';
+        const name = lead['Tên'] || lead['Tên NV'] || lead['Tên nv'] || lead['Họ và tên'] || '';
+        document.getElementById('task-nv-a').value = name;
+        document.getElementById('task-ma-a').value = lead['Mã NV'] || lead['Mã nv'] || '';
       }
     }
   });
-
-  // Autocomplete setup for A, R, C personnel inputs
-  setupPersonnelAutocomplete('task-nv-a', 'task-ma-a', 'sug-nv-a');
-  setupPersonnelAutocomplete('task-nv-r', 'task-ma-r', 'sug-nv-r');
-  setupPersonnelAutocomplete('task-nv-c', 'task-ma-c', 'sug-nv-c');
 
   // Form submission
   document.getElementById('form-task').addEventListener('submit', handleTaskSubmit);
@@ -328,7 +326,7 @@ function loadAllData() {
 
       populateFilterDropdowns();
       populateTeamDropdowns();
-      populateUserDatalists();
+      populateUserSelects();
       updateBadges();
       renderCurrentTab();
 
@@ -1012,102 +1010,68 @@ function renderSpecialView() {
 // Priority 3: All remaining personnel in Unit
 // ==============================================================================
 
-function populateUserDatalists() {
-  ['dl-users-a', 'dl-users-r', 'dl-users-c'].forEach(listId => {
-    const listEl = document.getElementById(listId);
-    if (!listEl) return;
-    listEl.innerHTML = '';
-    state.users.forEach(u => {
-      const name = u['Tên'] || u['Tên NV'] || u['Tên nv'] || u['Họ và tên'] || '';
-      const team = u['Tổ'] || u['Tổ hạ tầng'] || '';
-      const pos = u['Chức vụ'] || u['chức vụ'] || '';
-      if (name) {
-        const option = document.createElement('option');
-        option.value = name;
-        option.label = team ? `${team} - ${pos}` : pos;
-        listEl.appendChild(option);
-      }
-    });
-  });
-}
+function populateUserSelects(selectedTeam = '') {
+  const selectA = document.getElementById('task-nv-a');
+  const selectR = document.getElementById('task-nv-r');
+  const selectC = document.getElementById('task-nv-c');
 
-function setupPersonnelAutocomplete(inputId, hiddenMaId, sugBoxId) {
-  const input = document.getElementById(inputId);
-  const hidden = document.getElementById(hiddenMaId);
-  const sugBox = document.getElementById(sugBoxId);
+  if (!selectA) return;
 
-  if (!input || !sugBox) return;
+  const currentValA = selectA.value;
+  const currentValR = selectR ? selectR.value : '';
+  const currentValC = selectC ? selectC.value : '';
 
-  input.addEventListener('focus', () => renderSuggestions());
-  input.addEventListener('click', () => renderSuggestions());
-  input.addEventListener('input', () => renderSuggestions());
+  const normTeam = (selectedTeam || document.getElementById('task-ar-team')?.value || '').toLowerCase().trim();
 
-  document.addEventListener('click', (e) => {
-    if (!input.contains(e.target) && !sugBox.contains(e.target)) {
-      sugBox.style.display = 'none';
-    }
-  });
+  // 3-tier Priority Sorting from Sheet User ONLY
+  const sortedUsers = [...state.users].sort((a, b) => {
+    const nameA = a['Tên'] || a['Tên NV'] || a['Tên nv'] || a['Họ và tên'] || '';
+    const nameB = b['Tên'] || b['Tên NV'] || b['Tên nv'] || b['Họ và tên'] || '';
 
-  function renderSuggestions() {
-    const query = input.value.toLowerCase().trim();
-    const selectedTeam = (document.getElementById('task-ar-team').value || '').toLowerCase().trim();
+    const teamA = (a['Tổ'] || a['Tổ hạ tầng'] || '').toLowerCase().trim();
+    const teamB = (b['Tổ'] || b['Tổ hạ tầng'] || '').toLowerCase().trim();
 
-    // 3-tier Priority Sorting from Sheet User ONLY
-    const sortedUsers = [...state.users].sort((a, b) => {
-      const teamA = (a['Tổ'] || a['Tổ hạ tầng'] || '').toLowerCase().trim();
-      const teamB = (b['Tổ'] || b['Tổ hạ tầng'] || '').toLowerCase().trim();
+    const isLeadA = (a['Chức vụ'] || '').toLowerCase().match(/tổ trưởng|tổ phó|key|trưởng/i);
+    const isLeadB = (b['Chức vụ'] || '').toLowerCase().match(/tổ trưởng|tổ phó|key|trưởng/i);
 
-      const isLeadA = (a['Chức vụ'] || '').toLowerCase().match(/tổ trưởng|tổ phó|key|trưởng/i);
-      const isLeadB = (b['Chức vụ'] || '').toLowerCase().match(/tổ trưởng|tổ phó|key|trưởng/i);
+    if (normTeam && teamA === normTeam && teamB !== normTeam) return -1;
+    if (normTeam && teamB === normTeam && teamA !== normTeam) return 1;
 
-      if (teamA === selectedTeam && teamB !== selectedTeam) return -1;
-      if (teamB === selectedTeam && teamA !== selectedTeam) return 1;
-
-      if (teamA === selectedTeam && teamB === selectedTeam) {
-        if (isLeadA && !isLeadB) return -1;
-        if (isLeadB && !isLeadA) return 1;
-      }
-
-      return 0;
-    });
-
-    const filtered = sortedUsers.filter(u => {
-      const name = (u['Tên'] || u['Tên NV'] || u['Tên nv'] || u['Họ và tên'] || '').toLowerCase();
-      const ma = (u['Mã NV'] || u['Mã nv'] || '').toLowerCase();
-      const team = (u['Tổ'] || u['Tổ hạ tầng'] || '').toLowerCase();
-      return !query || name.includes(query) || ma.includes(query) || team.includes(query);
-    });
-
-    if (filtered.length === 0) {
-      sugBox.style.display = 'none';
-      return;
+    if (normTeam && teamA === normTeam && teamB === normTeam) {
+      if (isLeadA && !isLeadB) return -1;
+      if (isLeadB && !isLeadA) return 1;
     }
 
-    sugBox.innerHTML = '';
-    filtered.forEach(u => {
+    return nameA.localeCompare(nameB, 'vi');
+  });
+
+  const generateOptionsHTML = (defaultLabel) => {
+    let html = `<option value="">${defaultLabel}</option>`;
+    sortedUsers.forEach(u => {
       const name = u['Tên'] || u['Tên NV'] || u['Tên nv'] || u['Họ và tên'] || '';
       const ma = u['Mã NV'] || u['Mã nv'] || '';
       const team = u['Tổ'] || u['Tổ hạ tầng'] || '';
-      const pos = u['Chức vụ'] || u['chức vụ'] || 'NV';
+      const pos = u['Chức vụ'] || u['chức vụ'] || '';
 
-      const div = document.createElement('div');
-      div.className = 'suggestion-item';
-      div.innerHTML = `
-        <div><strong>${escapeHtml(name)}</strong> <span style="font-size: 0.75rem; color: var(--text-muted);">(${escapeHtml(pos)})</span></div>
-        <div class="staff-team">${escapeHtml(team)}</div>
-      `;
+      if (name) {
+        let label = name;
+        if (pos) label += ` (${pos})`;
+        if (team) label += ` - ${team}`;
+        if (ma) label += ` [${ma}]`;
 
-      div.addEventListener('click', () => {
-        input.value = name;
-        if (hidden) hidden.value = ma;
-        sugBox.style.display = 'none';
-      });
-
-      sugBox.appendChild(div);
+        html += `<option value="${escapeHtml(name)}" data-ma="${escapeHtml(ma)}">${escapeHtml(label)}</option>`;
+      }
     });
+    return html;
+  };
 
-    sugBox.style.display = 'block';
-  }
+  selectA.innerHTML = generateOptionsHTML('-- Chọn Tên NV (A) --');
+  if (selectR) selectR.innerHTML = generateOptionsHTML('-- Chọn Tên NV (R) --');
+  if (selectC) selectC.innerHTML = generateOptionsHTML('-- Chọn Tên NV (C) --');
+
+  if (currentValA) selectA.value = currentValA;
+  if (selectR && currentValR) selectR.value = currentValR;
+  if (selectC && currentValC) selectC.value = currentValC;
 }
 
 // ==============================================================================
@@ -1119,6 +1083,8 @@ function openTaskModal(taskId = null) {
   document.getElementById('task-id').value = '';
   document.getElementById('modal-task-title').innerText = taskId ? 'Sửa Công việc' : 'Thêm mới Công việc';
 
+  populateUserSelects();
+
   if (taskId) {
     const t = state.tasks.find(x => String(x['ID']) === String(taskId));
     if (t) {
@@ -1128,6 +1094,9 @@ function openTaskModal(taskId = null) {
       document.getElementById('task-leader').value = t['Lãnh đạo'] || '';
       document.getElementById('task-ar-team').value = t['Tổ chủ trì (AR)'] || '';
       document.getElementById('task-r-team').value = t['Tổ (R)'] || '';
+
+      populateUserSelects(t['Tổ chủ trì (AR)'] || '');
+
       document.getElementById('task-nv-a').value = t['Tên NV (A)'] || '';
       document.getElementById('task-ma-a').value = t['Mã NV (A)'] || '';
       document.getElementById('task-nv-r').value = t['Tên NV (R)'] || '';
@@ -1150,6 +1119,18 @@ function openTaskModal(taskId = null) {
 function handleTaskSubmit(e) {
   e.preventDefault();
 
+  const selA = document.getElementById('task-nv-a');
+  const selR = document.getElementById('task-nv-r');
+  const selC = document.getElementById('task-nv-c');
+
+  const optA = selA ? selA.options[selA.selectedIndex] : null;
+  const optR = selR ? selR.options[selR.selectedIndex] : null;
+  const optC = selC ? selC.options[selC.selectedIndex] : null;
+
+  const maA = optA ? (optA.getAttribute('data-ma') || '') : '';
+  const maR = optR ? (optR.getAttribute('data-ma') || '') : '';
+  const maC = optC ? (optC.getAttribute('data-ma') || '') : '';
+
   const taskData = {
     ID: document.getElementById('task-id').value || 'TASK_' + new Date().getTime(),
     'Tiêu đề': document.getElementById('task-title').value,
@@ -1157,12 +1138,12 @@ function handleTaskSubmit(e) {
     'Lãnh đạo': document.getElementById('task-leader').value,
     'Tổ chủ trì (AR)': document.getElementById('task-ar-team').value,
     'Tổ (R)': document.getElementById('task-r-team').value,
-    'Tên NV (A)': document.getElementById('task-nv-a').value,
-    'Mã NV (A)': document.getElementById('task-ma-a').value,
-    'Tên NV (R)': document.getElementById('task-nv-r').value,
-    'Mã NV (R)': document.getElementById('task-ma-r').value,
-    'Tên NV (C)': document.getElementById('task-nv-c').value,
-    'Mã NV (C)': document.getElementById('task-ma-c').value,
+    'Tên NV (A)': selA ? selA.value : '',
+    'Mã NV (A)': maA || document.getElementById('task-ma-a').value,
+    'Tên NV (R)': selR ? selR.value : '',
+    'Mã NV (R)': maR || document.getElementById('task-ma-r').value,
+    'Tên NV (C)': selC ? selC.value : '',
+    'Mã NV (C)': maC || document.getElementById('task-ma-c').value,
     'Trạng thái': document.getElementById('task-status').value,
     'Mức độ ưu tiên': document.getElementById('task-priority').value,
     'Ngày bắt đầu': formatDateDisplay(document.getElementById('task-start-date').value),
