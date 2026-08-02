@@ -885,11 +885,11 @@ textarea.form-control {
   background: #1e293b;
   border: 1px solid var(--border-highlight);
   border-radius: var(--radius-md);
-  max-height: 200px;
+  max-height: 280px;
   overflow-y: auto;
   z-index: 50;
   display: none;
-  box-shadow: var(--shadow-main);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
 }
 
 .suggestion-item {

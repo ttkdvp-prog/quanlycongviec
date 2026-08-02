@@ -175,7 +175,7 @@ function apiGetSheetData(sheetName) {
 
 function apiGetUsersData() {
   var ss = getSpreadsheet();
-  var sheet = getSheetByNameFlexible(ss, "user") || getSheetByNameFlexible(ss, "Nguoidung");
+  var sheet = getSheetByNameFlexible(ss, "user") || getSheetByNameFlexible(ss, "Nguoidung") || getSheetByNameFlexible(ss, "Users");
   if (!sheet) return [];
   return apiGetSheetData(sheet.getName());
 }
