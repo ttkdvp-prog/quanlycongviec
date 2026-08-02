@@ -702,6 +702,67 @@ body {
   background: rgba(255, 255, 255, 0.03);
 }
 
+/* STICKY COLUMNS: STT (COL 1) & TIÊU ĐỀ CÔNG VIỆC (COL 2) */
+.custom-table th:nth-child(1),
+.custom-table td:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  min-width: 55px;
+  max-width: 55px;
+  width: 55px;
+  background-color: #0f172a;
+}
+
+.custom-table th:nth-child(2),
+.custom-table td:nth-child(2) {
+  position: sticky;
+  left: 55px;
+  z-index: 4;
+  background-color: #0f172a;
+  border-right: 2px solid rgba(139, 92, 246, 0.35);
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.custom-table th:nth-child(1) {
+  top: 0;
+  left: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #2e1065, #221445) !important;
+}
+
+.custom-table th:nth-child(2) {
+  top: 0;
+  left: 55px;
+  z-index: 10;
+  background: linear-gradient(135deg, #25124b, #1e1b4b) !important;
+  border-right: 2px solid rgba(139, 92, 246, 0.5);
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.4);
+}
+
+.custom-table tbody tr:hover td:nth-child(1),
+.custom-table tbody tr:hover td:nth-child(2) {
+  background-color: #1e293b;
+}
+
+.custom-table tfoot td:nth-child(1),
+.custom-table tfoot th:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 8;
+  background: linear-gradient(135deg, #1e1b4b, #25124b) !important;
+}
+
+.custom-table tfoot td:nth-child(2),
+.custom-table tfoot th:nth-child(2) {
+  position: sticky;
+  left: 55px;
+  z-index: 8;
+  background: linear-gradient(135deg, #25124b, #2e1065) !important;
+  border-right: 2px solid rgba(139, 92, 246, 0.5);
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.4);
+}
+
 /* INLINE INPUT EDITORS */
 .inline-edit-input {
   background: rgba(15, 23, 42, 0.6);
