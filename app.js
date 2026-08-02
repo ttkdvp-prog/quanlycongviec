@@ -602,7 +602,7 @@ function renderListView() {
     tr.innerHTML = `
       <td>${idx + 1}</td>
       <td style="font-weight: 600; min-width: 180px;">${escapeHtml(t['Tiêu đề'] || '')}</td>
-      <td style="max-width: 220px; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(t['Mô tả'] || '')}</td>
+      <td style="max-width: 220px; font-size: 0.8rem; color: var(--text-muted); white-space: pre-wrap; word-break: break-word;">${escapeHtml(t['Mô tả'] || '')}</td>
       <td>${getStatusBadgeHTML(t['Trạng thái'])}</td>
       <td>${escapeHtml(t['Lãnh đạo'] || '-')}</td>
       <td>${escapeHtml(t['Tổ chủ trì (AR)'] || '-')}</td>
@@ -632,9 +632,9 @@ function renderListView() {
 
       <td><strong style="color: var(--accent-emerald);">${ratio}%</strong></td>
 
-      <!-- INLINE EDITABLE: Ghi chú -->
-      <td style="min-width: 140px;">
-        <input type="text" class="inline-edit-input" value="${escapeHtml(t['Ghi chú'] || '')}" placeholder="Nhập ghi chú..." onchange="handleInlineEdit('QLCV', '${t['ID']}', 'Ghi chú', this.value)">
+      <!-- INLINE EDITABLE: Ghi chú (Styling & text wrapping matching Mô tả) -->
+      <td style="max-width: 240px;">
+        <textarea class="inline-edit-textarea" placeholder="Nhập ghi chú..." onchange="handleInlineEdit('QLCV', '${t['ID']}', 'Ghi chú', this.value)">${escapeHtml(t['Ghi chú'] || '')}</textarea>
       </td>
 
       <td style="text-align: center; white-space: nowrap;">
@@ -698,7 +698,7 @@ function renderTTView() {
     tr.innerHTML = `
       <td>${idx + 1}</td>
       <td style="font-weight: 600;">${escapeHtml(t['Tiêu đề'] || '')}</td>
-      <td style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(t['Mô tả'] || '')}</td>
+      <td style="max-width: 220px; font-size: 0.8rem; color: var(--text-muted); white-space: pre-wrap; word-break: break-word;">${escapeHtml(t['Mô tả'] || '')}</td>
       <td>${getStatusBadgeHTML(t['Trạng thái'])}</td>
       <td>${escapeHtml(t['Tên NV (R)'] || '-')}</td>
       <td>${escapeHtml(t['Tên NV (C)'] || '-')}</td>
@@ -709,7 +709,9 @@ function renderTTView() {
       <td>${kh}</td>
       <td><input type="number" class="inline-edit-input" value="${th}" min="0" onchange="handleInlineEdit('TT_giaoviec', '${t['ID']}', 'Thực hiện', this.value)"></td>
       <td><strong>${ratio}%</strong></td>
-      <td><input type="text" class="inline-edit-input" value="${escapeHtml(t['Ghi chú'] || '')}" onchange="handleInlineEdit('TT_giaoviec', '${t['ID']}', 'Ghi chú', this.value)"></td>
+      <td style="max-width: 240px;">
+        <textarea class="inline-edit-textarea" placeholder="Nhập ghi chú..." onchange="handleInlineEdit('TT_giaoviec', '${t['ID']}', 'Ghi chú', this.value)">${escapeHtml(t['Ghi chú'] || '')}</textarea>
+      </td>
       <td style="text-align: center;">
         <button class="btn btn-secondary btn-icon" style="color: var(--accent-rose);" onclick="deleteTTTask('${t['ID']}')"><i class="fa-solid fa-trash"></i></button>
       </td>

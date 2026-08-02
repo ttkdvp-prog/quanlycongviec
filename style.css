@@ -697,6 +697,34 @@ body {
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
+.inline-edit-textarea {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-family: inherit;
+  width: 100%;
+  min-width: 180px;
+  max-width: 260px;
+  min-height: 48px;
+  resize: vertical;
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
+  transition: var(--transition-fast);
+}
+
+.inline-edit-textarea:focus {
+  border-color: var(--accent-primary);
+  background: rgba(15, 23, 42, 0.9);
+  color: var(--text-main);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+
 /* PROGRESS BAR */
 .progress-bar-container {
   width: 100px;
