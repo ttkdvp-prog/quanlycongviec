@@ -410,17 +410,17 @@
             <table class="custom-table" id="table-eval">
               <thead>
                 <tr>
-                  <th>STT</th>
-                  <th>HỌ VÀ TÊN NHÂN VIÊN</th>
-                  <th>TỔ CÔNG TÁC</th>
-                  <th>TỔNG VIỆC ĐƯỢC GIAO</th>
-                  <th>CHỦ TRÌ (A)</th>
-                  <th>PHỐI HỢP (R)</th>
-                  <th>ĐANG LÀM</th>
-                  <th>ĐÃ XONG</th>
-                  <th>QUÁ HẠN</th>
-                  <th>TỶ LỆ HOÀN THÀNH</th>
-                  <th>ĐÁNH GIÁ XẾP LOẠI</th>
+                  <th style="cursor: pointer;" onclick="sortEvalTable('rating')">STT</th>
+                  <th style="cursor: pointer;" onclick="sortEvalTable('name')">HỌ VÀ TÊN NHÂN VIÊN <i class="fa-solid fa-sort" style="font-size: 0.7rem; opacity: 0.6;"></i></th>
+                  <th style="cursor: pointer;" onclick="sortEvalTable('team')">TỔ CÔNG TÁC <i class="fa-solid fa-sort" style="font-size: 0.7rem; opacity: 0.6;"></i></th>
+                  <th style="cursor: pointer;" onclick="sortEvalTable('total')">TỔNG VIỆC ĐƯỢC GIAO <i class="fa-solid fa-sort" style="font-size: 0.7rem; opacity: 0.6;"></i></th>
+                  <th style="cursor: pointer;" onclick="sortEvalTable('leadA')">CHỦ TRÌ (A) <i class="fa-solid fa-sort" style="font-size: 0.7rem; opacity: 0.6;"></i></th>
+                  <th style="cursor: pointer;" onclick="sortEvalTable('coR')">PHỐI HỢP (R) <i class="fa-solid fa-sort" style="font-size: 0.7rem; opacity: 0.6;"></i></th>
+                  <th style="cursor: pointer;" onclick="sortEvalTable('doing')">ĐANG LÀM <i class="fa-solid fa-sort" style="font-size: 0.7rem; opacity: 0.6;"></i></th>
+                  <th style="cursor: pointer;" onclick="sortEvalTable('done')">ĐÃ XONG <i class="fa-solid fa-sort" style="font-size: 0.7rem; opacity: 0.6;"></i></th>
+                  <th style="cursor: pointer;" onclick="sortEvalTable('overdue')">QUÁ HẠN <i class="fa-solid fa-sort" style="font-size: 0.7rem; opacity: 0.6;"></i></th>
+                  <th style="cursor: pointer;" onclick="sortEvalTable('rate')">TỶ LỆ HOÀN THÀNH <i class="fa-solid fa-sort" style="font-size: 0.7rem; opacity: 0.6;"></i></th>
+                  <th style="cursor: pointer;" onclick="sortEvalTable('rating')">ĐÁNH GIÁ XẾP LOẠI <i class="fa-solid fa-sort" style="font-size: 0.7rem; opacity: 0.6;"></i></th>
                 </tr>
               </thead>
               <tbody id="tbody-eval">

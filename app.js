@@ -1138,6 +1138,21 @@ function renderStatsView() {
 // TAB 8: ĐÁNH GIÁ CÁ NHÂN & AUTO XẾP LOẠI
 // ==============================================================================
 
+let evalSortState = {
+  column: 'rating',
+  dir: 'asc'
+};
+
+function sortEvalTable(colKey) {
+  if (evalSortState.column === colKey) {
+    evalSortState.dir = evalSortState.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    evalSortState.column = colKey;
+    evalSortState.dir = 'asc';
+  }
+  renderEvaluationView();
+}
+
 function renderEvaluationView() {
   const tbody = document.getElementById('tbody-eval');
   tbody.innerHTML = '';
@@ -1160,52 +1175,64 @@ function renderEvaluationView() {
 
   const userStats = {};
 
-  // Pre-populate users from state.users
+  // Pre-populate users from state.users with trimmed name keys
   state.users.forEach(u => {
-    const name = getPersonProp(u, 'name');
+    const rawName = getPersonProp(u, 'name');
     const team = getPersonProp(u, 'team');
-    if (name) {
-      userStats[name] = {
-        name: name,
-        team: team || '-',
-        total: 0,
-        leadA: 0,
-        coR: 0,
-        doing: 0,
-        done: 0,
-        overdue: 0
-      };
+    if (rawName && rawName.trim()) {
+      const cleanName = rawName.trim();
+      const findKey = Object.keys(userStats).find(k => k.toLowerCase() === cleanName.toLowerCase());
+      if (!findKey) {
+        userStats[cleanName] = {
+          name: cleanName,
+          team: (team || '-').trim(),
+          total: 0,
+          leadA: 0,
+          coR: 0,
+          doing: 0,
+          done: 0,
+          overdue: 0
+        };
+      }
     }
   });
 
-  // Calculate task counts
+  // Calculate task counts with case-insensitive name matching
   state.tasks.forEach(t => {
-    const nameA = t['Tên NV (A)'];
-    const nameR = t['Tên NV (R)'];
+    const nameA = (t['Tên NV (A)'] || '').trim();
+    const nameR = (t['Tên NV (R)'] || '').trim();
     const st = (t['Trạng thái'] || '').toLowerCase();
 
     if (nameA) {
-      if (!userStats[nameA]) userStats[nameA] = { name: nameA, team: t['Tổ chủ trì (AR)'] || '-', total: 0, leadA: 0, coR: 0, doing: 0, done: 0, overdue: 0 };
-      userStats[nameA].total++;
-      userStats[nameA].leadA++;
-      if (st.includes('hoàn thành')) userStats[nameA].done++;
-      else if (st.includes('quá hạn')) userStats[nameA].overdue++;
-      else userStats[nameA].doing++;
+      let key = Object.keys(userStats).find(k => k.toLowerCase() === nameA.toLowerCase());
+      if (!key) {
+        key = nameA;
+        userStats[key] = { name: nameA, team: (t['Tổ chủ trì (AR)'] || '-').trim(), total: 0, leadA: 0, coR: 0, doing: 0, done: 0, overdue: 0 };
+      }
+      userStats[key].total++;
+      userStats[key].leadA++;
+      if (st.includes('hoàn thành')) userStats[key].done++;
+      else if (st.includes('quá hạn')) userStats[key].overdue++;
+      else userStats[key].doing++;
     }
 
-    if (nameR && nameR !== nameA) {
-      if (!userStats[nameR]) userStats[nameR] = { name: nameR, team: t['Tổ (R)'] || '-', total: 0, leadA: 0, coR: 0, doing: 0, done: 0, overdue: 0 };
-      userStats[nameR].total++;
-      userStats[nameR].coR++;
-      if (st.includes('hoàn thành')) userStats[nameR].done++;
-      else if (st.includes('quá hạn')) userStats[nameR].overdue++;
-      else userStats[nameR].doing++;
+    if (nameR && nameR.toLowerCase() !== nameA.toLowerCase()) {
+      let key = Object.keys(userStats).find(k => k.toLowerCase() === nameR.toLowerCase());
+      if (!key) {
+        key = nameR;
+        userStats[key] = { name: nameR, team: (t['Tổ (R)'] || '-').trim(), total: 0, leadA: 0, coR: 0, doing: 0, done: 0, overdue: 0 };
+      }
+      userStats[key].total++;
+      userStats[key].coR++;
+      if (st.includes('hoàn thành')) userStats[key].done++;
+      else if (st.includes('quá hạn')) userStats[key].overdue++;
+      else userStats[key].doing++;
     }
   });
 
   const userList = [];
-  Object.keys(userStats).forEach(name => {
-    const u = userStats[name];
+  Object.keys(userStats).forEach(key => {
+    const u = userStats[key];
     const rate = u.total > 0 ? Math.round((u.done / u.total) * 100) : 0;
 
     let rating = 'D - Chưa đạt';
@@ -1231,7 +1258,7 @@ function renderEvaluationView() {
     }
 
     userList.push({
-      name: name,
+      name: u.name,
       team: u.team,
       total: u.total,
       leadA: u.leadA,
@@ -1254,18 +1281,33 @@ function renderEvaluationView() {
     );
   }
 
-  // Sort: Rank A first (order 1) -> Rank B (2) -> Rank C (3) -> Rank D (4), then completion rate (%) descending
+  // Interactive Column Sorting Logic
+  const dirMult = evalSortState.dir === 'asc' ? 1 : -1;
+
   filteredUserList.sort((a, b) => {
-    if (a.ratingOrder !== b.ratingOrder) {
-      return a.ratingOrder - b.ratingOrder;
+    if (evalSortState.column === 'rating') {
+      if (a.ratingOrder !== b.ratingOrder) {
+        return (a.ratingOrder - b.ratingOrder) * dirMult;
+      }
+      if (b.rate !== a.rate) {
+        return (b.rate - a.rate) * dirMult;
+      }
+      return (b.total - a.total) * dirMult;
     }
-    if (b.rate !== a.rate) {
-      return b.rate - a.rate;
+    if (evalSortState.column === 'name') {
+      return a.name.localeCompare(b.name, 'vi') * dirMult;
     }
-    if (b.total !== a.total) {
-      return b.total - a.total;
+    if (evalSortState.column === 'team') {
+      return a.team.localeCompare(b.team, 'vi') * dirMult;
     }
-    return a.name.localeCompare(b.name, 'vi');
+    if (['total', 'leadA', 'coR', 'doing', 'done', 'overdue', 'rate'].includes(evalSortState.column)) {
+      const valA = a[evalSortState.column] || 0;
+      const valB = b[evalSortState.column] || 0;
+      if (valA !== valB) {
+        return (valA - valB) * dirMult;
+      }
+    }
+    return (a.ratingOrder - b.ratingOrder);
   });
 
   if (filteredUserList.length === 0) {
