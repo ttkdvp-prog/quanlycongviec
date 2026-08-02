@@ -2026,6 +2026,104 @@ function renderReportView() {
       </tr>
     `;
   }
+
+  // ==========================================================================
+  // RENDER TEAM SUMMARY TABLE (Grouped by Tổ chủ trì AR based on filtered tasks)
+  // ==========================================================================
+  const teamStats = {};
+
+  filtered.forEach(t => {
+    const team = (t['Tổ chủ trì (AR)'] || 'Chưa phân tổ').trim();
+    if (!teamStats[team]) {
+      teamStats[team] = {
+        name: team,
+        total: 0,
+        doing: 0,
+        done: 0,
+        overdue: 0,
+        canceled: 0,
+        sumKH: 0,
+        sumTH: 0
+      };
+    }
+
+    const st = (t['Trạng thái'] || '').toLowerCase();
+    teamStats[team].total++;
+    teamStats[team].sumKH += parseFloat(t['Kế hoạch']) || 0;
+    teamStats[team].sumTH += parseFloat(t['Thực hiện']) || 0;
+
+    if (st.includes('hoàn thành')) {
+      teamStats[team].done++;
+    } else if (st.includes('quá hạn')) {
+      teamStats[team].overdue++;
+    } else if (st.includes('hủy')) {
+      teamStats[team].canceled++;
+    } else {
+      teamStats[team].doing++;
+    }
+  });
+
+  const summaryBody = document.getElementById('tbody-report-team-summary');
+  const summaryFoot = document.getElementById('tfoot-report-team-summary');
+
+  if (summaryBody) {
+    summaryBody.innerHTML = '';
+    const teamsList = Object.values(teamStats).sort((a, b) => b.total - a.total);
+
+    if (teamsList.length === 0) {
+      summaryBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Không có dữ liệu thống kê theo tổ cho kết quả lọc hiện tại</td></tr>`;
+    } else {
+      let grandTotal = 0, grandDoing = 0, grandDone = 0, grandOverdue = 0, grandCanceled = 0, grandKH = 0, grandTH = 0;
+
+      teamsList.forEach((t, i) => {
+        grandTotal += t.total;
+        grandDoing += t.doing;
+        grandDone += t.done;
+        grandOverdue += t.overdue;
+        grandCanceled += t.canceled;
+        grandKH += t.sumKH;
+        grandTH += t.sumTH;
+
+        const ratio = t.sumKH > 0 ? Math.min(Math.round((t.sumTH / t.sumKH) * 100), 100) : (t.sumTH > 0 ? 100 : 0);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td style="font-weight: 600; color: #f8fafc;">${escapeHtml(t.name)}</td>
+          <td style="text-align: center; font-weight: 700; color: #38bdf8;">${t.total}</td>
+          <td style="text-align: center; color: #38bdf8; font-weight: 600;">${t.doing}</td>
+          <td style="text-align: center; color: #34d399; font-weight: 600;">${t.done}</td>
+          <td style="text-align: center; color: #f43f5e; font-weight: 600;">${t.overdue}</td>
+          <td style="text-align: center; color: #94a3b8;">${t.canceled}</td>
+          <td style="text-align: center;">${t.sumKH}</td>
+          <td style="text-align: center;">${t.sumTH}</td>
+          <td style="text-align: center;">
+            <span class="badge" style="background: rgba(52, 211, 153, 0.15); color: #34d399; font-weight: 700; padding: 0.35rem 0.65rem;">
+              ${ratio}%
+            </span>
+          </td>
+        `;
+        summaryBody.appendChild(tr);
+      });
+
+      if (summaryFoot) {
+        const grandRatio = grandKH > 0 ? Math.min(Math.round((grandTH / grandKH) * 100), 100) : (grandTH > 0 ? 100 : 0);
+        summaryFoot.innerHTML = `
+          <tr>
+            <td colspan="2" style="text-align: right; font-weight: 800; color: #a7f3d0;">TỔNG CỘNG TOÀN BỘ TỔ:</td>
+            <td style="text-align: center; font-weight: 800; color: #38bdf8;">${grandTotal}</td>
+            <td style="text-align: center; font-weight: 800; color: #38bdf8;">${grandDoing}</td>
+            <td style="text-align: center; font-weight: 800; color: #34d399;">${grandDone}</td>
+            <td style="text-align: center; font-weight: 800; color: #f43f5e;">${grandOverdue}</td>
+            <td style="text-align: center; font-weight: 800; color: #94a3b8;">${grandCanceled}</td>
+            <td style="text-align: center; font-weight: 800; color: #fff;">${grandKH}</td>
+            <td style="text-align: center; font-weight: 800; color: #34d399;">${grandTH}</td>
+            <td style="text-align: center; font-weight: 800; color: #34d399;">${grandRatio}%</td>
+          </tr>
+        `;
+      }
+    }
+  }
 }
 
 function isDateInRange(dateStr, fromDate, toDate) {
@@ -2095,7 +2193,7 @@ function exportReportExcel() {
     return;
   }
 
-  const exportData = filtered.map((t, idx) => ({
+  const detailData = filtered.map((t, idx) => ({
     'STT': idx + 1,
     'Tiêu đề công việc': t['Tiêu đề'] || '',
     'Mô tả': t['Mô tả'] || '',
@@ -2113,9 +2211,47 @@ function exportReportExcel() {
     'Ghi chú': t['Ghi chú'] || ''
   }));
 
-  const ws = XLSX.utils.json_to_sheet(exportData);
+  // Build Team Summary data for Sheet 2
+  const teamStats = {};
+  filtered.forEach(t => {
+    const team = (t['Tổ chủ trì (AR)'] || 'Chưa phân tổ').trim();
+    if (!teamStats[team]) {
+      teamStats[team] = { name: team, total: 0, doing: 0, done: 0, overdue: 0, canceled: 0, sumKH: 0, sumTH: 0 };
+    }
+    const st = (t['Trạng thái'] || '').toLowerCase();
+    teamStats[team].total++;
+    teamStats[team].sumKH += parseFloat(t['Kế hoạch']) || 0;
+    teamStats[team].sumTH += parseFloat(t['Thực hiện']) || 0;
+
+    if (st.includes('hoàn thành')) teamStats[team].done++;
+    else if (st.includes('quá hạn')) teamStats[team].overdue++;
+    else if (st.includes('hủy')) teamStats[team].canceled++;
+    else teamStats[team].doing++;
+  });
+
+  const teamSummaryData = Object.values(teamStats).sort((a, b) => b.total - a.total).map((t, i) => ({
+    'STT': i + 1,
+    'Tên Tổ Công Tác': t.name,
+    'Tổng Số Việc Giao': t.total,
+    'Đang Thực Hiện': t.doing,
+    'Hoàn Thành': t.done,
+    'Quá Hạn': t.overdue,
+    'Đã Hủy': t.canceled,
+    'Tổng Kế Hoạch': t.sumKH,
+    'Tổng Thực Hiện': t.sumTH,
+    'Tỷ Lệ Hoàn Thành (%)': t.sumKH > 0 ? Math.min(Math.round((t.sumTH / t.sumKH) * 100), 100) : (t.sumTH > 0 ? 100 : 0) + '%'
+  }));
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Bao_Cao_Cong_Viec');
+
+  // Sheet 1: Chi tiết công việc
+  const ws1 = XLSX.utils.json_to_sheet(detailData);
+  XLSX.utils.book_append_sheet(wb, ws1, 'Chi_Tiet_Cong_Viec');
+
+  // Sheet 2: Tổng hợp theo tổ
+  const ws2 = XLSX.utils.json_to_sheet(teamSummaryData);
+  XLSX.utils.book_append_sheet(wb, ws2, 'Tong_Hop_Theo_To');
+
   XLSX.writeFile(wb, `Bao_Cao_Cong_Viec_${Date.now()}.xlsx`);
-  showToast(`Đã xuất báo cáo ${filtered.length} công việc ra file Excel!`, 'success');
+  showToast(`Đã xuất báo cáo ${filtered.length} công việc (gồm 2 Sheet) ra Excel!`, 'success');
 }

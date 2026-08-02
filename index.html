@@ -565,6 +565,39 @@
               </tbody>
               <tfoot id="tfoot-report"></tfoot>
             </table>
+          <!-- BẢNG TỔNG HỢP THEO TỔ CÔNG TÁC (DỰA TRÊN KẾT QUẢ LỌC) -->
+          <div class="glass-card" style="margin-top: 2rem; margin-bottom: 2rem;">
+            <div class="card-header" style="margin-bottom: 1rem;">
+              <div class="card-title">
+                <i class="fa-solid fa-chart-pie" style="color: #38bdf8;"></i> 
+                Bảng tổng hợp Thống kê Công việc theo từng Tổ (Tính theo khoảng thời gian & lọc ở trên)
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="custom-table" id="table-report-team-summary">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;">STT</th>
+                    <th>TÊN TỔ CÔNG TÁC</th>
+                    <th style="text-align: center;">TỔNG SỐ VIỆC GIAO</th>
+                    <th style="text-align: center;">ĐANG THỰC HIỆN</th>
+                    <th style="text-align: center;">HOÀN THÀNH</th>
+                    <th style="text-align: center;">QUÁ HẠN / TRỄ HẠN</th>
+                    <th style="text-align: center;">ĐÃ HỦY</th>
+                    <th style="text-align: center;">TỔNG KẾ HOẠCH</th>
+                    <th style="text-align: center;">TỔNG THỰC HIỆN</th>
+                    <th style="text-align: center;">TỶ LỆ HOÀN THÀNH (%)</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-report-team-summary">
+                  <!-- Dynamic team summary rows -->
+                </tbody>
+                <tfoot id="tfoot-report-team-summary">
+                  <!-- Footer total row -->
+                </tfoot>
+              </table>
+            </div>
           </div>
         </div>
 
