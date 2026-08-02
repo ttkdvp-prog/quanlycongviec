@@ -664,8 +664,8 @@ function renderListView() {
 
     tr.innerHTML = `
       <td>${idx + 1}</td>
-      <td style="font-weight: 700; min-width: 180px; color: #60a5fa;">
-        <span style="color: #60a5fa;">${idx + 1}.</span> ${escapeHtml(t['Tiêu đề'] || '')}
+      <td style="font-weight: 600; min-width: 180px; color: #e2e8f0;">
+        <span style="color: #94a3b8;">${idx + 1}.</span> ${escapeHtml(t['Tiêu đề'] || '')}
       </td>
       <td style="min-width: 260px; max-width: 340px; font-size: 0.8rem; color: var(--text-muted); white-space: pre-wrap; word-break: break-word;">${escapeHtml(t['Mô tả'] || '')}</td>
       <td>${getStatusBadgeHTML(t['Trạng thái'])}</td>
@@ -806,8 +806,8 @@ function renderTTView() {
 
     tr.innerHTML = `
       <td>${idx + 1}</td>
-      <td style="font-weight: 700; min-width: 180px; color: #60a5fa;">
-        <span style="color: #60a5fa;">${idx + 1}.</span> ${escapeHtml(t['Tiêu đề'] || '')}
+      <td style="font-weight: 600; min-width: 180px; color: #e2e8f0;">
+        <span style="color: #94a3b8;">${idx + 1}.</span> ${escapeHtml(t['Tiêu đề'] || '')}
       </td>
       <td style="min-width: 260px; max-width: 340px; font-size: 0.8rem; color: var(--text-muted); white-space: pre-wrap; word-break: break-word;">${escapeHtml(t['Mô tả'] || '')}</td>
       <td>${getStatusBadgeHTML(t['Trạng thái'])}</td>
