@@ -378,13 +378,38 @@ function populateFilterDropdowns() {
 function populateTeamDropdowns() {
   const teams = new Set();
   state.users.forEach(u => {
-    const t = u['Tổ'] || u['Tổ hạ tầng'];
+    const t = getPersonProp(u, 'team');
     if (t) teams.add(t);
   });
   state.nhanvien.forEach(n => {
-    const t = n['Tổ hạ tầng'] || n['Tổ'];
+    const t = getPersonProp(n, 'team') || n['Tổ hạ tầng'] || n['Tổ'];
     if (t) teams.add(t);
   });
+  state.tasks.forEach(task => {
+    if (task['Tổ chủ trì (AR)']) teams.add(task['Tổ chủ trì (AR)']);
+    if (task['Tổ (R)']) teams.add(task['Tổ (R)']);
+  });
+
+  const defaultTeams = [
+    'Tổ Tổng hợp',
+    'Tổ Hạ tầng Hòa Bình',
+    'Tổ Hạ tầng Lương Sơn',
+    'Tổ Hạ tầng Phúc Yên',
+    'Tổ Hạ tầng Tam Đảo',
+    'Tổ Hạ tầng Tân Lạc',
+    'Tổ Hạ tầng Thanh Ba',
+    'Tổ Hạ tầng Thanh Sơn',
+    'Tổ Hạ tầng Việt Trì',
+    'Tổ Hạ tầng Vĩnh Yên',
+    'Tổ Hỗ trợ Khách hàng Vip site Hoà Bình',
+    'Tổ Hỗ trợ Khách hàng Vip site Phú Thọ',
+    'Tổ Hỗ trợ Khách hàng Vip site Vĩnh Phúc',
+    'Tổ Khai thác Hệ thống Phú Thọ'
+  ];
+
+  if (teams.size === 0) {
+    defaultTeams.forEach(t => teams.add(t));
+  }
 
   fillSelect('task-ar-team', Array.from(teams), '-- Chọn Tổ chủ trì --');
   fillSelect('task-r-team', Array.from(teams), '-- Chọn Tổ phối hợp --');
@@ -1296,6 +1321,7 @@ function openTaskModal(taskId = null) {
     if (el) el.value = '';
   });
 
+  populateTeamDropdowns();
   populateUserSelects();
 
   if (taskId) {
