@@ -1147,6 +1147,13 @@ function openTaskModal(taskId = null) {
       document.getElementById('task-actual').value = t['Thực hiện'] || 0;
       document.getElementById('task-note').value = t['Ghi chú'] || '';
     }
+  } else {
+    // Default start date to current date (YYYY-MM-DD), while still allowing user edits
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    document.getElementById('task-start-date').value = `${yyyy}-${mm}-${dd}`;
   }
 
   openModal('modal-task');
