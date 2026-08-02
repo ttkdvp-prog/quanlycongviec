@@ -107,6 +107,9 @@ function doPost(e) {
       responseData = apiGetAllData();
     } else if (action === "saveTask") {
       responseData = apiSaveTask(data);
+    } else if (action === "importTasks") {
+      var tasksList = Array.isArray(data) ? data : (data.tasks || []);
+      responseData = apiImportTasks(tasksList);
     } else if (action === "updateTaskInline") {
       responseData = apiUpdateTaskInline(data);
     } else if (action === "deleteTask") {
@@ -238,6 +241,20 @@ function apiGetDocumentsData() {
 
 function apiSaveTask(taskData) {
   return saveOrUpdateRow("QLCV", taskData, "ID");
+}
+
+function apiImportTasks(tasksArray) {
+  if (!Array.isArray(tasksArray) || tasksArray.length === 0) {
+    return { success: false, error: "Không có dữ liệu công việc để nhập" };
+  }
+  var count = 0;
+  for (var i = 0; i < tasksArray.length; i++) {
+    if (tasksArray[i] && (tasksArray[i]['Tiêu đề'] || tasksArray[i]['ID'])) {
+      saveOrUpdateRow("QLCV", tasksArray[i], "ID");
+      count++;
+    }
+  }
+  return { success: true, count: count, message: "Đã nhập " + count + " công việc thành công vào QLCV" };
 }
 
 function apiUpdateTaskInline(updateData) {

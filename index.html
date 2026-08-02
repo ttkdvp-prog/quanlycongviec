@@ -11,6 +11,9 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- SheetJS XLSX Library for Excel Import/Export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="style.css">
 </head>
@@ -111,6 +114,10 @@
         </div>
 
         <div class="header-actions">
+          <button class="btn btn-secondary" id="btn-import-excel" title="Nhập dữ liệu từ file Excel">
+            <i class="fa-solid fa-file-excel" style="color: #34d399;"></i>
+            <span>Nhập Excel</span>
+          </button>
           <button class="btn btn-secondary btn-icon" id="btn-sync" title="Đồng bộ GSheet">
             <i class="fa-solid fa-rotate"></i>
           </button>
@@ -583,6 +590,67 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeModal('modal-settings')">Đóng</button>
         <button type="button" class="btn btn-primary" onclick="saveSettings()">Lưu cấu hình</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: EXCEL IMPORT                        -->
+  <!-- ========================================== -->
+  <div class="modal-backdrop" id="modal-excel-import">
+    <div class="modal-content" style="max-width: 880px;">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fa-solid fa-file-excel" style="color: #34d399;"></i> Nhập dữ liệu Công việc từ File Excel</div>
+        <button class="modal-close" onclick="closeModal('modal-excel-import')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.04); padding: 0.85rem 1.25rem; border-radius: var(--radius-md); margin-bottom: 1rem; border: 1px solid var(--border-glass);">
+          <div>
+            <div style="font-weight: 600; font-size: 0.9rem; color: #fff;">1. Tải về file mẫu Excel chuẩn</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted);">File chứa sẵn các cột thông tin chuẩn để bạn điền công việc</div>
+          </div>
+          <button class="btn btn-secondary" id="btn-download-excel-template" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+            <i class="fa-solid fa-download" style="color: #60a5fa;"></i> Tải mẫu Excel
+          </button>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label class="form-label" style="font-weight: 600;">2. Chọn file Excel (.xlsx, .xls, .csv) từ máy tính</label>
+          <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="form-control" style="padding: 0.6rem; cursor: pointer;">
+        </div>
+
+        <div id="excel-preview-container" style="display: none; margin-top: 1rem;">
+          <div style="font-weight: 600; font-size: 0.85rem; color: var(--accent-emerald); margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <span><i class="fa-solid fa-list-check"></i> Xem trước dữ liệu (<span id="excel-preview-count">0</span> công việc):</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">* Tên cột sẽ được tự động nhận diện thông minh</span>
+          </div>
+          <div style="max-height: 280px; overflow: auto; border: 1px solid var(--border-glass); border-radius: var(--radius-md); background: rgba(15, 23, 42, 0.6);">
+            <table class="custom-table" style="font-size: 0.78rem;">
+              <thead>
+                <tr>
+                  <th>STT</th>
+                  <th>TIÊU ĐỀ</th>
+                  <th>MÔ TẢ</th>
+                  <th>LÃNH ĐẠO</th>
+                  <th>TỔ AR</th>
+                  <th>TỔ R</th>
+                  <th>NV (A)</th>
+                  <th>NV (R)</th>
+                  <th>TRẠNG THÁI</th>
+                  <th>BẮT ĐẦU</th>
+                  <th>HẠN KẾT THÚC</th>
+                </tr>
+              </thead>
+              <tbody id="excel-preview-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-excel-import')">Hủy bỏ</button>
+        <button type="button" class="btn btn-primary" id="btn-confirm-excel-import" disabled style="opacity: 0.5; cursor: not-allowed;">
+          <i class="fa-solid fa-file-import"></i> Xác nhận nhập dữ liệu
+        </button>
       </div>
     </div>
   </div>

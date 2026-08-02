@@ -64,6 +64,7 @@ const gasApi = {
 
         if (action === 'getAllData') runner.apiGetAllData();
         else if (action === 'saveTask') runner.apiSaveTask(data);
+        else if (action === 'importTasks') runner.apiImportTasks(data);
         else if (action === 'updateTaskInline') runner.apiUpdateTaskInline(data);
         else if (action === 'deleteTask') runner.apiDeleteTask(getCleanId(data));
         else if (action === 'saveTTTask') runner.apiSaveTTTask(data);
@@ -176,6 +177,37 @@ function initUI() {
   document.getElementById('btn-add-task').addEventListener('click', () => {
     openTaskModal();
   });
+
+  // Excel Import button & listeners
+  const btnImportExcel = document.getElementById('btn-import-excel');
+  if (btnImportExcel) {
+    btnImportExcel.addEventListener('click', () => {
+      excelImportParsedTasks = [];
+      document.getElementById('excel-file-input').value = '';
+      document.getElementById('excel-preview-container').style.display = 'none';
+      document.getElementById('excel-preview-tbody').innerHTML = '';
+      const btnConfirm = document.getElementById('btn-confirm-excel-import');
+      btnConfirm.disabled = true;
+      btnConfirm.style.opacity = '0.5';
+      btnConfirm.style.cursor = 'not-allowed';
+      openModal('modal-excel-import');
+    });
+  }
+
+  const btnTemplate = document.getElementById('btn-download-excel-template');
+  if (btnTemplate) {
+    btnTemplate.addEventListener('click', downloadExcelTemplate);
+  }
+
+  const fileInput = document.getElementById('excel-file-input');
+  if (fileInput) {
+    fileInput.addEventListener('change', handleExcelFileSelect);
+  }
+
+  const btnConfirmImport = document.getElementById('btn-confirm-excel-import');
+  if (btnConfirmImport) {
+    btnConfirmImport.addEventListener('click', confirmExcelImport);
+  }
 
   // Task Form auto-fill A and prioritize users when AR Team selected
   document.getElementById('task-ar-team').addEventListener('change', (e) => {
@@ -1579,4 +1611,220 @@ function formatDateDisplay(str) {
   const parts = str.split('-');
   if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
   return str;
+}
+
+// ==============================================================================
+// EXCEL IMPORT & TEMPLATE EXPORT UTILITIES
+// ==============================================================================
+
+let excelImportParsedTasks = [];
+
+function downloadExcelTemplate() {
+  if (typeof XLSX === 'undefined') {
+    showToast('Thư viện XLSX chưa tải xong, vui lòng tải lại trang', 'error');
+    return;
+  }
+
+  const sampleData = [
+    {
+      'Tiêu đề': 'Cung cấp và lắp đặt thiết bị tủ nguồn 3 pha',
+      'Mô tả': 'Nâng cấp hệ thống tủ điện khu vực Hòa Bình',
+      'Lãnh đạo': 'Nguyễn Công Hoan',
+      'Tổ chủ trì (AR)': 'Tổ Hạ tầng Hòa Bình',
+      'Tổ (R)': 'Tổ Tổng hợp',
+      'Tên NV (A)': 'Lê Minh Thuyết',
+      'Mã NV (A)': 'VNPT018248',
+      'Tên NV (R)': 'Trần Thị Thúy',
+      'Mã NV (R)': 'VNPT018465',
+      'Tên NV (C)': '',
+      'Mã NV (C)': '',
+      'Trạng thái': 'Đang thực hiện',
+      'Mức độ ưu tiên': 'Bình thường',
+      'Ngày bắt đầu': '01/08/2026',
+      'Ngày kết thúc': '15/08/2026',
+      'Ngày làm xong': '',
+      'Kế hoạch': 1,
+      'Thực hiện': 0,
+      'Ghi chú': 'Công việc mẫu'
+    }
+  ];
+
+  const ws = XLSX.utils.json_to_sheet(sampleData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'QLCV_Mau');
+  XLSX.writeFile(wb, 'Mau_Nhap_Cong_Viec_QLCV.xlsx');
+  showToast('Đã tải xuống file mẫu Excel', 'success');
+}
+
+function handleExcelFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (typeof XLSX === 'undefined') {
+    showToast('Thư viện XLSX chưa sẵn sàng, vui lòng làm mới trang', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+      excelImportParsedTasks = [];
+      rawRows.forEach((row, idx) => {
+        const task = mapExcelRowToTask(row, idx);
+        if (task) {
+          excelImportParsedTasks.push(task);
+        }
+      });
+
+      if (excelImportParsedTasks.length === 0) {
+        showToast('Không tìm thấy dòng dữ liệu công việc hợp lệ nào trong file!', 'warning');
+        document.getElementById('excel-preview-container').style.display = 'none';
+        return;
+      }
+
+      // Render Preview Table
+      const tbody = document.getElementById('excel-preview-tbody');
+      tbody.innerHTML = '';
+      excelImportParsedTasks.forEach((t, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td style="font-weight: 600; color: #e2e8f0;">${escapeHtml(t['Tiêu đề'])}</td>
+          <td style="max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(t['Mô tả'])}</td>
+          <td>${escapeHtml(t['Lãnh đạo'] || '-')}</td>
+          <td>${escapeHtml(t['Tổ chủ trì (AR)'] || '-')}</td>
+          <td>${escapeHtml(t['Tổ (R)'] || '-')}</td>
+          <td>${escapeHtml(t['Tên NV (A)'] || '-')}</td>
+          <td>${escapeHtml(t['Tên NV (R)'] || '-')}</td>
+          <td>${getStatusBadgeHTML(t['Trạng thái'])}</td>
+          <td>${escapeHtml(t['Ngày bắt đầu'] || '-')}</td>
+          <td>${escapeHtml(t['Ngày kết thúc'] || '-')}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('excel-preview-count').innerText = excelImportParsedTasks.length;
+      document.getElementById('excel-preview-container').style.display = 'block';
+
+      const btnConfirm = document.getElementById('btn-confirm-excel-import');
+      btnConfirm.disabled = false;
+      btnConfirm.style.opacity = '1';
+      btnConfirm.style.cursor = 'pointer';
+
+      showToast(`Đã đọc ${excelImportParsedTasks.length} dòng công việc từ file Excel!`, 'info');
+    } catch (err) {
+      console.error(err);
+      showToast('Lỗi đọc file Excel: ' + err.message, 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function mapExcelRowToTask(row, idx) {
+  const getVal = (keys) => {
+    for (const k of keys) {
+      const targetNorm = removeVietnameseTones(k).replace(/[^a-z0-9]/g, '');
+      for (const rowKey in row) {
+        const rowNorm = removeVietnameseTones(rowKey).replace(/[^a-z0-9]/g, '');
+        if (rowNorm === targetNorm) {
+          return String(row[rowKey] || '').trim();
+        }
+      }
+    }
+    return '';
+  };
+
+  const title = getVal(['Tiêu đề', 'Tiêu đề công việc', 'Tên công việc', 'Title']);
+  if (!title) return null;
+
+  const desc = getVal(['Mô tả', 'Mô tả chi tiết', 'Nội dung', 'Description']);
+  const leader = getVal(['Lãnh đạo', 'Lãnh đạo phụ trách', 'Leader']);
+  const arTeam = getVal(['Tổ chủ trì (AR)', 'Tổ chủ trì', 'Tổ AR', 'AR Team']);
+  const rTeam = getVal(['Tổ (R)', 'Tổ phối hợp', 'Tổ R']);
+  const nvA = getVal(['Tên NV (A)', 'Tên NV A', 'Nhân viên (A)', 'NV A']);
+  const maA = getVal(['Mã NV (A)', 'Mã NV A', 'Mã A']);
+  const nvR = getVal(['Tên NV (R)', 'Tên NV R', 'Nhân viên (R)', 'NV R']);
+  const maR = getVal(['Mã NV (R)', 'Mã NV R', 'Mã R']);
+  const nvC = getVal(['Tên NV (C)', 'Tên NV C', 'Nhân viên (C)', 'NV C']);
+  const maC = getVal(['Mã NV (C)', 'Mã NV C', 'Mã C']);
+  const status = getVal(['Trạng thái', 'Status']) || 'Đang thực hiện';
+  const priority = getVal(['Mức độ ưu tiên', 'Ưu tiên', 'Priority']) || 'Bình thường';
+  
+  let startDate = getVal(['Ngày bắt đầu', 'Start Date', 'Từ ngày']);
+  let endDate = getVal(['Ngày kết thúc', 'Hạn hoàn thành', 'End Date', 'Đến ngày']);
+  let doneDate = getVal(['Ngày làm xong', 'Done Date']);
+
+  startDate = formatDateDisplay(startDate);
+  endDate = formatDateDisplay(endDate);
+  doneDate = formatDateDisplay(doneDate);
+
+  const plan = getVal(['Kế hoạch', 'Số lượng kế hoạch', 'Plan']) || 1;
+  const actual = getVal(['Thực hiện', 'Số lượng thực hiện', 'Actual']) || 0;
+  const note = getVal(['Ghi chú', 'Note']);
+
+  const task = {
+    ID: getVal(['ID', 'Mã công việc']) || ('TASK_EXCEL_' + Date.now() + '_' + idx),
+    'Tiêu đề': title,
+    'Mô tả': desc,
+    'Lãnh đạo': leader,
+    'Tổ chủ trì (AR)': arTeam,
+    'Tổ (R)': rTeam,
+    'Tên NV (A)': nvA,
+    'Mã NV (A)': maA,
+    'Tên NV (R)': nvR,
+    'Mã NV (R)': maR,
+    'Tên NV (C)': nvC,
+    'Mã NV (C)': maC,
+    'Trạng thái': status,
+    'Mức độ ưu tiên': priority,
+    'Ngày bắt đầu': startDate,
+    'Ngày kết thúc': endDate,
+    'Ngày làm xong': doneDate,
+    'Kế hoạch': plan,
+    'Thực hiện': actual,
+    'Ghi chú': note
+  };
+
+  task['Trạng thái'] = computeTaskStatus(task);
+  return task;
+}
+
+function confirmExcelImport() {
+  if (excelImportParsedTasks.length === 0) return;
+
+  const newTasks = [...excelImportParsedTasks];
+
+  // 1. Optimistic local update
+  newTasks.forEach(taskData => {
+    const existingIdx = state.tasks.findIndex(x => String(x['ID']) === String(taskData.ID));
+    if (existingIdx >= 0) {
+      state.tasks[existingIdx] = { ...state.tasks[existingIdx], ...taskData };
+    } else {
+      state.tasks.unshift(taskData);
+    }
+  });
+
+  // 2. Refresh UI immediately
+  populateFilterDropdowns();
+  populateTeamDropdowns();
+  updateBadges();
+  renderCurrentTab();
+  closeModal('modal-excel-import');
+  showToast(`Đã nhập thành công ${newTasks.length} công việc từ Excel!`, 'success');
+
+  // 3. Background sync to Google Sheets
+  gasApi.call('importTasks', newTasks)
+    .then(res => {
+      showToast(res.message || `Đã đồng bộ ${newTasks.length} công việc lên Google Sheets!`, 'success');
+    })
+    .catch(err => {
+      console.error('Lỗi đồng bộ Excel lên backend:', err);
+      showToast('Lỗi đồng bộ Excel lên Google Sheets: ' + err, 'error');
+    });
 }
