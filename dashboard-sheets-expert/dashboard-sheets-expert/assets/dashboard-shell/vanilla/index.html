@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Dashboard</title>
+  <style>
+    :root { color-scheme: light; --bg:#f8fafc; --fg:#0f172a; --mut:#64748b; --line:#e2e8f0; --card:#fff; --accent:#0f172a; }
+    *,*::before,*::after { box-sizing: border-box; }
+    html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    .app { display:flex; height:100dvh; overflow:hidden; }
+    .side { width:240px; background:var(--card); border-right:1px solid var(--line); display:flex; flex-direction:column; }
+    .side h1 { font-size:14px; padding:16px; margin:0; border-bottom:1px solid var(--line); }
+    .side nav a { display:flex; align-items:center; gap:8px; padding:8px 12px; margin:2px 8px; border-radius:6px; color:var(--mut); text-decoration:none; font-size:14px; }
+    .side nav a.active, .side nav a:hover { background:#f1f5f9; color:var(--fg); }
+    .main { flex:1; min-width:0; display:flex; flex-direction:column; }
+    .top { height:56px; background:rgba(255,255,255,.8); backdrop-filter: blur(8px); border-bottom:1px solid var(--line); display:flex; align-items:center; padding:0 16px; gap:12px; position:sticky; top:0; z-index:5; }
+    .burger { display:none; width:36px; height:36px; border:0; background:transparent; border-radius:6px; cursor:pointer; }
+    .burger:hover { background:#f1f5f9; }
+    .content { flex:1; overflow:auto; padding:16px; container-type:inline-size; container-name:main; }
+    .stat-grid { display:grid; gap:12px; grid-template-columns:1fr; }
+    @container main (min-width:481px) { .stat-grid { grid-template-columns:repeat(2,1fr); } }
+    @container main (min-width:901px) { .stat-grid { grid-template-columns:repeat(4,1fr); } }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+    .table-wrap { background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+    .toolbar { display:flex; gap:8px; padding:12px; border-bottom:1px solid var(--line); align-items:center; }
+    .toolbar input[type=search] { flex:1; min-width:160px; padding:8px 12px; border-radius:8px; border:1px solid var(--line); font-size:14px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { padding:10px 12px; text-align:left; border-top:1px solid #f1f5f9; vertical-align:top; }
+    thead th { background:#f8fafc; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--mut); border-top:0; cursor:pointer; user-select:none; position:sticky; top:0; }
+    tbody tr:hover { background:#f8fafc; cursor:pointer; }
+    .right { text-align:right; }
+    .clamp { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; }
+    .badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:9999px; font-size:11px; font-weight:600; }
+    .badge.active { background:#d1fae5; color:#065f46; }
+    .badge.draft { background:#fef3c7; color:#92400e; }
+    .pager { display:flex; gap:8px; padding:12px; border-top:1px solid var(--line); align-items:center; }
+    .pager button { padding:6px 10px; border-radius:6px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+    .pager button[disabled] { opacity:.4; cursor:not-allowed; }
+    .toast { position:fixed; bottom:max(16px,env(safe-area-inset-bottom)); right:16px; background:#0f172a; color:#fff; padding:10px 14px; border-radius:10px; display:flex; gap:12px; align-items:center; box-shadow:0 8px 24px rgba(0,0,0,.18); z-index:60; }
+    .toast button { background:transparent; color:#fff; border:1px solid #334155; border-radius:6px; padding:4px 8px; cursor:pointer; font-size:12px; }
+    .overlay { position:fixed; inset:0; z-index:50; }
+    .overlay .scrim { position:absolute; inset:0; background:rgba(0,0,0,.4); }
+    .overlay .panel { position:absolute; top:0; right:0; bottom:0; width:min(560px,100vw); background:#fff; box-shadow:-12px 0 32px rgba(0,0,0,.18); display:flex; flex-direction:column; }
+    .overlay header { height:56px; border-bottom:1px solid var(--line); display:flex; align-items:center; padding:0 16px; gap:8px; }
+    .overlay .body { flex:1; overflow:auto; padding:16px; }
+    .overlay label { display:block; margin-bottom:12px; }
+    .overlay label span { display:block; font-size:11px; text-transform:uppercase; color:var(--mut); margin-bottom:4px; }
+    .overlay input { width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--line); font-size:14px; }
+    .overlay footer { border-top:1px solid var(--line); padding:12px 16px; display:flex; gap:8px; }
+    .btn { padding:8px 12px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:14px; }
+    .btn.primary { background:#0f172a; color:#fff; border-color:#0f172a; }
+    .btn.danger { color:#b91c1c; border-color:#fecaca; }
+    @media (max-width: 720px) {
+      .side { display:none; }
+      .burger { display:inline-flex; align-items:center; justify-content:center; }
+      .drawer { position:fixed; inset:0; z-index:40; }
+      .drawer .scrim { position:absolute; inset:0; background:rgba(0,0,0,.4); }
+      .drawer .panel { position:absolute; top:0; left:0; bottom:0; width:280px; background:#fff; box-shadow:12px 0 32px rgba(0,0,0,.18); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <aside class="side">
+      <h1>Dashboard</h1>
+      <nav>
+        <a href="#" class="active">Overview</a>
+        <a href="#products">Products</a>
+        <a href="#customers">Customers</a>
+      </nav>
+    </aside>
+    <main class="main">
+      <header class="top">
+        <button class="burger" id="burger" aria-label="Open menu">☰</button>
+        <strong>Admin</strong>
+        <span style="margin-left:auto;color:var(--mut);font-size:12px" id="status">idle</span>
+      </header>
+      <section class="content">
+        <h2 style="margin:0 0 12px">Products</h2>
+        <div class="table-wrap">
+          <div class="toolbar">
+            <input type="search" id="q" placeholder="Search..." />
+            <span id="count" style="color:var(--mut);font-size:12px"></span>
+          </div>
+          <div style="overflow:auto;max-height:60vh">
+            <table>
+              <thead>
+                <tr id="head"></tr>
+              </thead>
+              <tbody id="body"></tbody>
+            </table>
+          </div>
+          <div class="pager">
+            <button id="prev">Prev</button>
+            <button id="next">Next</button>
+            <span id="range" style="margin-left:auto;color:var(--mut);font-size:12px"></span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="overlay"></div>
+  <div id="toast"></div>
+
+  <script>
+    /* ------------- config ------------- */
+    const CONFIG = {
+      url: window.APPS_SCRIPT_URL || "PASTE_WEB_APP_URL_HERE",
+      key: window.API_KEY || "PASTE_API_KEY_HERE",
+      table: "Products",
+      pageSize: 25,
+      pollMs: 3000,
+    };
+
+    /* ------------- columns ------------- */
+    const COLUMNS = [
+      { key:"name", header:"Name", clamp:1, w:"minmax(160px,1.4fr)" },
+      { key:"description", header:"Description", clamp:2, w:"minmax(200px,2fr)" },
+      { key:"price", header:"Price", format:"price", currency:"VND", align:"right", w:"140px" },
+      { key:"stock", header:"Stock", align:"right", w:"100px" },
+      { key:"status", header:"Status", format:"badge", w:"120px" },
+    ];
+
+    /* ------------- formatters ------------- */
+    const fmt = {
+      price(v, c="VND") { const n = Number(v); if(!isFinite(n)) return ""; return new Intl.NumberFormat("vi-VN",{style:"currency",currency:c,maximumFractionDigits: c==="VND"?0:2}).format(n); },
+      badge(v) { const cls = String(v).toLowerCase(); return `<span class="badge ${cls}">${v}</span>`; },
+      cell(c, v) { if (c.format==="price") return this.price(v, c.currency); if (c.format==="badge") return this.badge(v); return String(v ?? ""); },
+    };
+
+    /* ------------- api ------------- */
+    async function api(action, payload={}, method="GET") {
+      const body = { action, table: CONFIG.table, apiKey: CONFIG.key, ...payload };
+      let res;
+      if (method === "GET") {
+        const params = new URLSearchParams();
+        Object.entries(body).forEach(([k,v]) => { if (v != null) params.set(k, typeof v === "object" ? JSON.stringify(v) : String(v)); });
+        res = await fetch(CONFIG.url + "?" + params.toString());
+      } else {
+        res = await fetch(CONFIG.url, { method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify(body) });
+      }
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || "request failed");
+      return json;
+    }
+
+    /* ------------- state ------------- */
+    const state = { rows:[], q:"", sort:null, page:0, version:0, edit:null };
+
+    /* ------------- streaming ------------- */
+    let pollTimer = null;
+    async function seed() {
+      try {
+        setStatus("loading");
+        const r = await api("list", { limit: 500 });
+        state.rows = (r.data || []).filter(x => !x.deleted);
+        state.version = r.version || 0;
+        render();
+        setStatus("polling");
+        schedulePoll();
+      } catch (e) { setStatus("error: " + e.message); }
+    }
+    function schedulePoll() {
+      clearTimeout(pollTimer);
+      const wait = document.visibilityState === "hidden" ? 30000 : CONFIG.pollMs;
+      pollTimer = setTimeout(poll, wait);
+    }
+    async function poll() {
+      try {
+        const r = await api("stream", { since: state.version });
+        if (r.data && r.data.length) {
+          const map = new Map(state.rows.map(x => [x.id, x]));
+          for (const row of r.data) { if (row.deleted) map.delete(row.id); else map.set(row.id, row); }
+          state.rows = Array.from(map.values());
+        }
+        state.version = r.version || state.version;
+        render();
+        setStatus("polling");
+      } catch (e) { setStatus("retry: " + e.message); }
+      schedulePoll();
+    }
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") poll(); });
+
+    /* ------------- render ------------- */
+    function setStatus(s) { document.getElementById("status").textContent = s; }
+    function filtered() {
+      const q = state.q.toLowerCase();
+      let rows = !q ? state.rows : state.rows.filter(r => COLUMNS.some(c => String(r[c.key] ?? "").toLowerCase().includes(q)));
+      if (state.sort) {
+        const { key, dir } = state.sort;
+        rows = [...rows].sort((a,b) => a[key] === b[key] ? 0 : ((a[key] > b[key] ? 1 : -1) * (dir === "asc" ? 1 : -1)));
+      }
+      return rows;
+    }
+    function render() {
+      const head = document.getElementById("head");
+      head.innerHTML = COLUMNS.map(c => {
+        const arrow = state.sort?.key === c.key ? (state.sort.dir === "asc" ? " ↑" : " ↓") : "";
+        return `<th data-key="${c.key}" style="text-align:${c.align||"left"};width:${c.w||""}">${c.header}${arrow}</th>`;
+      }).join("") + `<th style="width:120px"></th>`;
+      head.querySelectorAll("th[data-key]").forEach(th => {
+        th.addEventListener("click", () => {
+          const k = th.dataset.key;
+          state.sort = !state.sort || state.sort.key !== k ? { key:k, dir:"asc" } : state.sort.dir === "asc" ? { key:k, dir:"desc" } : null;
+          render();
+        });
+      });
+
+      const rows = filtered();
+      const total = rows.length;
+      const pageCount = Math.max(1, Math.ceil(total / CONFIG.pageSize));
+      if (state.page >= pageCount) state.page = pageCount - 1;
+      const slice = rows.slice(state.page * CONFIG.pageSize, (state.page + 1) * CONFIG.pageSize);
+
+      document.getElementById("body").innerHTML = slice.map(row => {
+        const cells = COLUMNS.map(c => {
+          const body = fmt.cell(c, row[c.key]);
+          const cls = c.clamp ? `class="clamp" style="-webkit-line-clamp:${c.clamp}"` : "";
+          return `<td style="text-align:${c.align||"left"}"><div ${cls}>${body}</div></td>`;
+        }).join("");
+        return `<tr data-id="${row.id}">${cells}<td class="right">
+          <button class="btn" data-act="view">View</button>
+          <button class="btn danger" data-act="del">Delete</button>
+        </td></tr>`;
+      }).join("");
+      document.querySelectorAll("tbody tr").forEach(tr => {
+        const id = tr.dataset.id;
+        const row = state.rows.find(r => r.id === id);
+        tr.querySelector('[data-act="view"]').addEventListener("click", e => { e.stopPropagation(); openOverlay(row, "view"); });
+        tr.querySelector('[data-act="del"]').addEventListener("click", e => { e.stopPropagation(); confirmDelete(row); });
+        tr.addEventListener("click", () => openOverlay(row, "view"));
+      });
+
+      document.getElementById("count").textContent = total + " rows";
+      document.getElementById("range").textContent = total === 0 ? "0 of 0" : `${state.page * CONFIG.pageSize + 1}-${Math.min(total,(state.page+1)*CONFIG.pageSize)} of ${total}`;
+      document.getElementById("prev").disabled = state.page === 0;
+      document.getElementById("next").disabled = state.page >= pageCount - 1;
+    }
+
+    document.getElementById("q").addEventListener("input", debounce(e => { state.q = e.target.value; state.page = 0; render(); }, 250));
+    document.getElementById("prev").addEventListener("click", () => { state.page = Math.max(0, state.page - 1); render(); });
+    document.getElementById("next").addEventListener("click", () => { state.page = state.page + 1; render(); });
+    document.getElementById("burger").addEventListener("click", openDrawer);
+
+    function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+    function openDrawer() {
+      const el = document.createElement("div");
+      el.className = "drawer";
+      el.innerHTML = `<div class="scrim"></div><aside class="panel"><h1 style="padding:16px;border-bottom:1px solid var(--line);margin:0;font-size:14px">Dashboard</h1><nav><a href="#" class="active" style="display:block;padding:8px 12px">Overview</a><a href="#products" style="display:block;padding:8px 12px">Products</a></nav></aside>`;
+      el.querySelector(".scrim").addEventListener("click", () => el.remove());
+      document.body.appendChild(el);
+    }
+
+    function openOverlay(row, mode) {
+      const root = document.getElementById("overlay");
+      const fields = COLUMNS.map(c => mode === "edit"
+        ? `<label><span>${c.header}</span><input data-key="${c.key}" value="${row[c.key] ?? ""}" type="${c.format==='price'?'number':'text'}" /></label>`
+        : `<label><span>${c.header}</span><div>${fmt.cell(c, row[c.key]) || "—"}</div></label>`
+      ).join("");
+      root.innerHTML = `<div class="overlay">
+        <div class="scrim"></div>
+        <div class="panel" role="dialog" aria-modal="true">
+          <header>
+            <strong>${mode === "edit" ? "Edit row" : "Row detail"}</strong>
+            <div style="margin-left:auto;display:flex;gap:6px">
+              ${mode === "view" ? '<button class="btn primary" data-act="edit">Edit</button>' : ''}
+              <button class="btn" data-act="close">Close</button>
+            </div>
+          </header>
+          <div class="body">${fields}</div>
+          ${mode === "edit" ? '<footer><button class="btn" data-act="cancel">Cancel</button><button class="btn primary" style="margin-left:auto" data-act="save">Save</button></footer>' : ''}
+        </div>
+      </div>`;
+      const close = () => { root.innerHTML = ""; };
+      root.querySelector(".scrim").addEventListener("click", () => mode === "view" && close());
+      root.querySelector('[data-act="close"]').addEventListener("click", close);
+      const editBtn = root.querySelector('[data-act="edit"]');
+      if (editBtn) editBtn.addEventListener("click", () => openOverlay(row, "edit"));
+      const cancelBtn = root.querySelector('[data-act="cancel"]');
+      if (cancelBtn) cancelBtn.addEventListener("click", close);
+      const saveBtn = root.querySelector('[data-act="save"]');
+      if (saveBtn) saveBtn.addEventListener("click", async () => {
+        const patch = {};
+        root.querySelectorAll("input[data-key]").forEach(i => { patch[i.dataset.key] = i.type === "number" ? Number(i.value) : i.value; });
+        try {
+          setStatus("saving");
+          const r = await api("update", { id: row.id, data: patch }, "POST");
+          Object.assign(row, r.data);
+          render();
+          close();
+          showToast("Saved");
+        } catch (e) { showToast("Save failed: " + e.message); }
+      });
+    }
+
+    function confirmDelete(row) {
+      const snapshot = state.rows.slice();
+      state.rows = state.rows.filter(r => r.id !== row.id);
+      render();
+      const t = setTimeout(async () => {
+        try { await api("delete", { id: row.id }, "POST"); }
+        catch { state.rows = snapshot; render(); showToast("Delete failed, restored"); }
+      }, 5000);
+      showToast("Deleted " + (row.name || row.id), { label:"Undo", onClick: () => { clearTimeout(t); state.rows = snapshot; render(); } }, 5000);
+    }
+
+    function showToast(msg, action, ms=3000) {
+      const root = document.getElementById("toast");
+      root.innerHTML = `<div class="toast"><span>${msg}</span>${action ? `<button id="toast-act">${action.label}</button>` : ""}</div>`;
+      const t = setTimeout(() => root.innerHTML = "", ms);
+      if (action) document.getElementById("toast-act").addEventListener("click", () => { clearTimeout(t); root.innerHTML = ""; action.onClick(); });
+    }
+
+    seed();
+  </script>
+</body>
+</html>
