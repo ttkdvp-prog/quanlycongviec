@@ -73,6 +73,10 @@
           <i class="fa-solid fa-star"></i>
           <span>Công việc lưu ý</span>
         </a>
+        <a class="nav-item" data-tab="tab-report" id="nav-report">
+          <i class="fa-solid fa-calendar-days"></i>
+          <span>Lọc chi tiết & Báo cáo</span>
+        </a>
       </nav>
     </aside>
 
@@ -429,6 +433,140 @@
               <tbody id="tbody-special">
                 <!-- Rows injected dynamically -->
               </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 10: LỌC CHI TIẾT & BÁO CÁO THEO KHOẢNG THỜI GIAN -->
+        <div class="tab-pane" id="tab-report">
+          <!-- PANEL BỘ LỌC CHI TIẾT -->
+          <div class="glass-card" style="margin-bottom: 1.5rem;">
+            <div class="card-header" style="margin-bottom: 1rem;">
+              <div class="card-title"><i class="fa-solid fa-filter" style="color: #818cf8;"></i> Bộ lọc chi tiết & Tính số lượng công việc theo khoảng thời gian</div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem; align-items: end;">
+              <div>
+                <label class="form-label" style="font-size: 0.78rem;">Từ ngày</label>
+                <input type="date" id="report-from-date" class="form-control" style="font-size: 0.82rem;">
+              </div>
+
+              <div>
+                <label class="form-label" style="font-size: 0.78rem;">Đến ngày</label>
+                <input type="date" id="report-to-date" class="form-control" style="font-size: 0.82rem;">
+              </div>
+
+              <div>
+                <label class="form-label" style="font-size: 0.78rem;">Loại ngày lọc</label>
+                <select id="report-date-type" class="form-control" style="font-size: 0.82rem;">
+                  <option value="start">Ngày bắt đầu</option>
+                  <option value="end">Hạn hoàn thành (Ngày kết thúc)</option>
+                  <option value="done">Ngày làm xong</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label" style="font-size: 0.78rem;">Tổ chủ trì (AR)</label>
+                <select id="report-filter-ar" class="form-control" style="font-size: 0.82rem;">
+                  <option value="">Tất cả Tổ chủ trì</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label" style="font-size: 0.78rem;">Nhân viên thực hiện (A)</label>
+                <select id="report-filter-nva" class="form-control" style="font-size: 0.82rem;">
+                  <option value="">Tất cả NV (A)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label" style="font-size: 0.78rem;">Trạng thái</label>
+                <select id="report-filter-status" class="form-control" style="font-size: 0.82rem;">
+                  <option value="">Tất cả Trạng thái</option>
+                  <option value="Đang thực hiện">Đang thực hiện</option>
+                  <option value="Hoàn thành">Hoàn thành</option>
+                  <option value="Hoàn thành quá hạn">Hoàn thành quá hạn</option>
+                  <option value="Quá hạn">Quá hạn</option>
+                  <option value="Đã hủy">Đã hủy</option>
+                </select>
+              </div>
+
+              <div style="display: flex; gap: 0.5rem; grid-column: 1 / -1; margin-top: 0.5rem;">
+                <button type="button" class="btn btn-primary" id="btn-apply-report-filter" style="padding: 0.55rem 1.25rem;">
+                  <i class="fa-solid fa-magnifying-glass"></i> Lọc dữ liệu & Tính toán
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-reset-report-filter">
+                  <i class="fa-solid fa-rotate-left"></i> Đặt lại
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-export-report-excel" style="color: #34d399; margin-left: auto;">
+                  <i class="fa-solid fa-file-excel"></i> Xuất Báo cáo Excel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- THỐNG KÊ TỔNG QUAN THEO KẾT QUẢ LỌC -->
+          <div class="kpi-grid" style="margin-bottom: 1.5rem;">
+            <div class="kpi-card kpi-total">
+              <div class="kpi-info">
+                <p>Số công việc thỏa lọc</p>
+                <h3 id="report-kpi-total">0</h3>
+              </div>
+              <div class="kpi-icon"><i class="fa-solid fa-list-check"></i></div>
+            </div>
+
+            <div class="kpi-card kpi-doing">
+              <div class="kpi-info">
+                <p>Đang thực hiện</p>
+                <h3 id="report-kpi-doing">0</h3>
+              </div>
+              <div class="kpi-icon"><i class="fa-solid fa-spinner"></i></div>
+            </div>
+
+            <div class="kpi-card kpi-done">
+              <div class="kpi-info">
+                <p>Hoàn thành</p>
+                <h3 id="report-kpi-done">0</h3>
+              </div>
+              <div class="kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
+            </div>
+
+            <div class="kpi-card kpi-overdue">
+              <div class="kpi-info">
+                <p>Quá hạn / Trễ hạn</p>
+                <h3 id="report-kpi-overdue">0</h3>
+              </div>
+              <div class="kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            </div>
+          </div>
+
+          <!-- BẢNG DANH SÁCH CHI TIẾT CÁC CÔNG VIỆC THỎA ĐIỀU KIỆN LỌC -->
+          <div class="table-wrapper">
+            <table class="custom-table" id="table-report">
+              <thead>
+                <tr>
+                  <th>STT</th>
+                  <th>TIÊU ĐỀ CÔNG VIỆC</th>
+                  <th>MÔ TẢ</th>
+                  <th>TRẠNG THÁI</th>
+                  <th>LÃNH ĐẠO</th>
+                  <th>TỔ CHỦ TRÌ (AR)</th>
+                  <th>TÊN NV (A)</th>
+                  <th>TÊN NV (R)</th>
+                  <th>TÊN NV (C)</th>
+                  <th>BẮT ĐẦU</th>
+                  <th>HẠN HOÀN THÀNH</th>
+                  <th>NGÀY LÀM XONG</th>
+                  <th>KẾ HOẠCH</th>
+                  <th>THỰC HIỆN</th>
+                  <th>TỶ LỆ (%)</th>
+                  <th>GHI CHÚ</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-report">
+                <!-- Dynamic rows -->
+              </tbody>
+              <tfoot id="tfoot-report"></tfoot>
             </table>
           </div>
         </div>

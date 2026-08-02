@@ -209,6 +209,30 @@ function initUI() {
     btnConfirmImport.addEventListener('click', confirmExcelImport);
   }
 
+  // Report & Filter listeners
+  const btnApplyReportFilter = document.getElementById('btn-apply-report-filter');
+  if (btnApplyReportFilter) {
+    btnApplyReportFilter.addEventListener('click', renderReportView);
+  }
+
+  const btnResetReportFilter = document.getElementById('btn-reset-report-filter');
+  if (btnResetReportFilter) {
+    btnResetReportFilter.addEventListener('click', () => {
+      document.getElementById('report-from-date').value = '';
+      document.getElementById('report-to-date').value = '';
+      document.getElementById('report-date-type').value = 'start';
+      document.getElementById('report-filter-ar').value = '';
+      document.getElementById('report-filter-nva').value = '';
+      document.getElementById('report-filter-status').value = '';
+      renderReportView();
+    });
+  }
+
+  const btnExportReportExcel = document.getElementById('btn-export-report-excel');
+  if (btnExportReportExcel) {
+    btnExportReportExcel.addEventListener('click', exportReportExcel);
+  }
+
   // Task Form auto-fill A and prioritize users when AR Team selected
   document.getElementById('task-ar-team').addEventListener('change', (e) => {
     const selectedTeam = e.target.value;
@@ -282,7 +306,8 @@ function switchTab(tabId) {
     'tab-users': 'Danh mục Người dùng',
     'tab-stats': 'Thống kê Tiến độ theo Tổ',
     'tab-evaluation': 'Đánh giá & Xếp loại Cá nhân',
-    'tab-special': 'Công việc Cần Lưu ý'
+    'tab-special': 'Công việc Cần Lưu ý',
+    'tab-report': 'Lọc chi tiết & Báo cáo số lượng Công việc theo Ngày'
   };
   document.getElementById('current-page-title').innerText = titles[tabId] || 'QLCV TTHT';
 
@@ -499,6 +524,9 @@ function renderCurrentTab() {
       break;
     case 'tab-special':
       renderSpecialView();
+      break;
+    case 'tab-report':
+      renderReportView();
       break;
   }
 }
@@ -1827,4 +1855,201 @@ function confirmExcelImport() {
       console.error('Lỗi đồng bộ Excel lên backend:', err);
       showToast('Lỗi đồng bộ Excel lên Google Sheets: ' + err, 'error');
     });
+}
+
+// ==============================================================================
+// TAB 10: LỌC CHI TIẾT & BÁO CÁO THEO KHOẢNG THỜI GIAN
+// ==============================================================================
+
+function renderReportView() {
+  populateReportDropdowns();
+
+  const fromDate = document.getElementById('report-from-date')?.value || '';
+  const toDate = document.getElementById('report-to-date')?.value || '';
+  const dateType = document.getElementById('report-date-type')?.value || 'start';
+  const arTeam = document.getElementById('report-filter-ar')?.value || '';
+  const nvA = document.getElementById('report-filter-nva')?.value || '';
+  const status = document.getElementById('report-filter-status')?.value || '';
+
+  const filtered = state.tasks.filter(t => {
+    let targetDateStr = '';
+    if (dateType === 'start') targetDateStr = t['Ngày bắt đầu'];
+    else if (dateType === 'done') targetDateStr = t['Ngày làm xong'];
+    else targetDateStr = t['Ngày kết thúc'] || t['Hạn hoàn thành'];
+
+    if ((fromDate || toDate) && !isDateInRange(targetDateStr, fromDate, toDate)) {
+      return false;
+    }
+
+    if (arTeam && t['Tổ chủ trì (AR)'] !== arTeam) return false;
+    if (nvA && t['Tên NV (A)'] !== nvA) return false;
+    if (status) {
+      const st = (t['Trạng thái'] || '').toLowerCase();
+      if (!st.includes(status.toLowerCase())) return false;
+    }
+
+    return true;
+  });
+
+  // Calculate stats
+  let doing = 0, done = 0, overdue = 0, sumKH = 0, sumTH = 0;
+  filtered.forEach(t => {
+    sumKH += parseFloat(t['Kế hoạch']) || 0;
+    sumTH += parseFloat(t['Thực hiện']) || 0;
+    const st = (t['Trạng thái'] || '').toLowerCase();
+    if (st.includes('hoàn thành')) done++;
+    else if (st.includes('quá hạn')) overdue++;
+    else doing++;
+  });
+
+  // Update KPI Cards
+  document.getElementById('report-kpi-total').innerText = filtered.length;
+  document.getElementById('report-kpi-doing').innerText = doing;
+  document.getElementById('report-kpi-done').innerText = done;
+  document.getElementById('report-kpi-overdue').innerText = overdue;
+
+  // Render Table
+  const tbody = document.getElementById('tbody-report');
+  tbody.innerHTML = '';
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; color: var(--text-muted); padding: 2rem;">Không tìm thấy công việc phù hợp với bộ lọc ngày</td></tr>`;
+  } else {
+    filtered.forEach((t, idx) => {
+      const kh = parseFloat(t['Kế hoạch']) || 0;
+      const th = parseFloat(t['Thực hiện']) || 0;
+      const ratio = kh > 0 ? Math.min(Math.round((th / kh) * 100), 100) : (th > 0 ? 100 : 0);
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td style="font-weight: 600; min-width: 180px; color: #e2e8f0;">
+          <span style="color: #94a3b8;">${idx + 1}.</span> ${escapeHtml(t['Tiêu đề'] || '')}
+        </td>
+        <td style="min-width: 220px; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(t['Mô tả'] || '')}</td>
+        <td>${getStatusBadgeHTML(t['Trạng thái'])}</td>
+        <td>${escapeHtml(t['Lãnh đạo'] || '-')}</td>
+        <td><span class="badge" style="background: rgba(255, 255, 255, 0.08); color: #e2e8f0;">${escapeHtml(t['Tổ chủ trì (AR)'] || '-')}</span></td>
+        <td><strong style="color: #fff;">${escapeHtml(t['Tên NV (A)'] || '-')}</strong></td>
+        <td>${escapeHtml(t['Tên NV (R)'] || '-')}</td>
+        <td>${escapeHtml(t['Tên NV (C)'] || '-')}</td>
+        <td>${escapeHtml(t['Ngày bắt đầu'] || '-')}</td>
+        <td>${escapeHtml(t['Ngày kết thúc'] || '-')}</td>
+        <td>${escapeHtml(t['Ngày làm xong'] || '-')}</td>
+        <td>${kh}</td>
+        <td>${th}</td>
+        <td><strong style="color: var(--accent-emerald);">${ratio}%</strong></td>
+        <td style="max-width: 200px;">${escapeHtml(t['Ghi chú'] || '-')}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Footer summary
+  const tfoot = document.getElementById('tfoot-report');
+  if (tfoot) {
+    const avgRatio = sumKH > 0 ? Math.min(Math.round((sumTH / sumKH) * 100), 100) : (sumTH > 0 ? 100 : 0);
+    tfoot.innerHTML = `
+      <tr>
+        <td colspan="3" style="text-align: right; font-weight: 700; color: #a7f3d0;">TỔNG CỘNG (${filtered.length} VIỆC):</td>
+        <td colspan="9" style="font-size: 0.8rem; color: #cbd5e1;">Hoàn thành: <strong style="color:var(--accent-emerald);">${done}</strong> | Quá hạn: <strong style="color:var(--accent-rose);">${overdue}</strong></td>
+        <td style="font-weight: 800; color: #fff;">${sumKH}</td>
+        <td style="font-weight: 800; color: var(--accent-emerald);">${sumTH}</td>
+        <td style="font-weight: 800; color: var(--accent-emerald);">${avgRatio}%</td>
+        <td></td>
+      </tr>
+    `;
+  }
+}
+
+function isDateInRange(dateStr, fromDate, toDate) {
+  const d = parseDateStr(dateStr);
+  if (!d) return false;
+  d.setHours(0, 0, 0, 0);
+
+  if (fromDate) {
+    const f = new Date(fromDate);
+    f.setHours(0, 0, 0, 0);
+    if (d < f) return false;
+  }
+  if (toDate) {
+    const t = new Date(toDate);
+    t.setHours(23, 59, 59, 999);
+    if (d > t) return false;
+  }
+  return true;
+}
+
+function populateReportDropdowns() {
+  const arSelect = document.getElementById('report-filter-ar');
+  const nvaSelect = document.getElementById('report-filter-nva');
+
+  if (!arSelect || arSelect.options.length > 1) return;
+
+  const arTeams = new Set();
+  const nvASet = new Set();
+
+  state.tasks.forEach(t => {
+    if (t['Tổ chủ trì (AR)']) arTeams.add(t['Tổ chủ trì (AR)']);
+    if (t['Tên NV (A)']) nvASet.add(t['Tên NV (A)']);
+  });
+
+  fillSelect('report-filter-ar', Array.from(arTeams), 'Tất cả Tổ chủ trì');
+  fillSelect('report-filter-nva', Array.from(nvASet), 'Tất cả NV (A)');
+}
+
+function exportReportExcel() {
+  if (typeof XLSX === 'undefined') {
+    showToast('Thư viện XLSX chưa sẵn sàng', 'error');
+    return;
+  }
+
+  const fromDate = document.getElementById('report-from-date')?.value || '';
+  const toDate = document.getElementById('report-to-date')?.value || '';
+  const dateType = document.getElementById('report-date-type')?.value || 'start';
+  const arTeam = document.getElementById('report-filter-ar')?.value || '';
+  const nvA = document.getElementById('report-filter-nva')?.value || '';
+  const status = document.getElementById('report-filter-status')?.value || '';
+
+  const filtered = state.tasks.filter(t => {
+    let targetDateStr = '';
+    if (dateType === 'start') targetDateStr = t['Ngày bắt đầu'];
+    else if (dateType === 'done') targetDateStr = t['Ngày làm xong'];
+    else targetDateStr = t['Ngày kết thúc'] || t['Hạn hoàn thành'];
+
+    if ((fromDate || toDate) && !isDateInRange(targetDateStr, fromDate, toDate)) return false;
+    if (arTeam && t['Tổ chủ trì (AR)'] !== arTeam) return false;
+    if (nvA && t['Tên NV (A)'] !== nvA) return false;
+    if (status && !(t['Trạng thái'] || '').toLowerCase().includes(status.toLowerCase())) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    showToast('Không có dữ liệu để xuất Excel', 'warning');
+    return;
+  }
+
+  const exportData = filtered.map((t, idx) => ({
+    'STT': idx + 1,
+    'Tiêu đề công việc': t['Tiêu đề'] || '',
+    'Mô tả': t['Mô tả'] || '',
+    'Trạng thái': t['Trạng thái'] || '',
+    'Lãnh đạo': t['Lãnh đạo'] || '',
+    'Tổ chủ trì (AR)': t['Tổ chủ trì (AR)'] || '',
+    'Tên NV (A)': t['Tên NV (A)'] || '',
+    'Tên NV (R)': t['Tên NV (R)'] || '',
+    'Tên NV (C)': t['Tên NV (C)'] || '',
+    'Ngày bắt đầu': t['Ngày bắt đầu'] || '',
+    'Hạn hoàn thành': t['Ngày kết thúc'] || '',
+    'Ngày làm xong': t['Ngày làm xong'] || '',
+    'Kế hoạch': t['Kế hoạch'] || 0,
+    'Thực hiện': t['Thực hiện'] || 0,
+    'Ghi chú': t['Ghi chú'] || ''
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Bao_Cao_Cong_Viec');
+  XLSX.writeFile(wb, `Bao_Cao_Cong_Viec_${Date.now()}.xlsx`);
+  showToast(`Đã xuất báo cáo ${filtered.length} công việc ra file Excel!`, 'success');
 }
