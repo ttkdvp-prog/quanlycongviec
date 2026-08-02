@@ -195,6 +195,21 @@ function initUI() {
     }
   });
 
+  // Quick search listeners for NV A, R, C personnel selects
+  ['search-nv-a', 'search-nv-r', 'search-nv-c'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => {
+        populateUserSelects();
+        const targetSelectId = id.replace('search-', 'task-');
+        const targetSelect = document.getElementById(targetSelectId);
+        if (targetSelect && el.value.trim() !== '' && targetSelect.options.length > 1) {
+          targetSelect.selectedIndex = 1;
+        }
+      });
+    }
+  });
+
   // Form submission
   document.getElementById('form-task').addEventListener('submit', handleTaskSubmit);
 
@@ -1144,6 +1159,38 @@ function getPersonProp(u, type) {
   return '';
 }
 
+function removeVietnameseTones(str) {
+  if (!str) return '';
+  str = String(str);
+  str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+  str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+  str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+  str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+  str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+  str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+  str = str.replace(/đ/g, "d");
+  str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
+  str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
+  str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
+  str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+  str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
+  str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
+  str = str.replace(/Đ/g, "D");
+  return str.toLowerCase().trim();
+}
+
+function filterUsersByQuery(users, query) {
+  if (!query) return users;
+  const q = removeVietnameseTones(query);
+  return users.filter(u => {
+    const name = removeVietnameseTones(getPersonProp(u, 'name'));
+    const ma = removeVietnameseTones(getPersonProp(u, 'ma'));
+    const team = removeVietnameseTones(getPersonProp(u, 'team'));
+    const pos = removeVietnameseTones(getPersonProp(u, 'pos'));
+    return name.includes(q) || ma.includes(q) || team.includes(q) || pos.includes(q);
+  });
+}
+
 function populateUserSelects(selectedTeam = '') {
   const selectA = document.getElementById('task-nv-a');
   const selectR = document.getElementById('task-nv-r');
@@ -1198,9 +1245,17 @@ function populateUserSelects(selectedTeam = '') {
     return nameA.localeCompare(nameB, 'vi');
   });
 
-  const generateOptionsHTML = (defaultLabel) => {
+  const queryA = document.getElementById('search-nv-a')?.value || '';
+  const queryR = document.getElementById('search-nv-r')?.value || '';
+  const queryC = document.getElementById('search-nv-c')?.value || '';
+
+  const filteredA = filterUsersByQuery(sortedUsers, queryA);
+  const filteredR = filterUsersByQuery(sortedUsers, queryR);
+  const filteredC = filterUsersByQuery(sortedUsers, queryC);
+
+  const generateOptionsHTML = (list, defaultLabel) => {
     let html = `<option value="">${defaultLabel}</option>`;
-    sortedUsers.forEach(u => {
+    list.forEach(u => {
       const name = getPersonProp(u, 'name');
       const ma = getPersonProp(u, 'ma');
       const team = getPersonProp(u, 'team');
@@ -1218,9 +1273,9 @@ function populateUserSelects(selectedTeam = '') {
     return html;
   };
 
-  selectA.innerHTML = generateOptionsHTML('-- Chọn Tên NV (A) --');
-  if (selectR) selectR.innerHTML = generateOptionsHTML('-- Chọn Tên NV (R) --');
-  if (selectC) selectC.innerHTML = generateOptionsHTML('-- Chọn Tên NV (C) --');
+  selectA.innerHTML = generateOptionsHTML(filteredA, '-- Chọn Tên NV (A) --');
+  if (selectR) selectR.innerHTML = generateOptionsHTML(filteredR, '-- Chọn Tên NV (R) --');
+  if (selectC) selectC.innerHTML = generateOptionsHTML(filteredC, '-- Chọn Tên NV (C) --');
 
   if (currentValA) selectA.value = currentValA;
   if (selectR && currentValR) selectR.value = currentValR;
@@ -1235,6 +1290,11 @@ function openTaskModal(taskId = null) {
   document.getElementById('form-task').reset();
   document.getElementById('task-id').value = '';
   document.getElementById('modal-task-title').innerText = taskId ? 'Sửa Công việc' : 'Thêm mới Công việc';
+
+  ['search-nv-a', 'search-nv-r', 'search-nv-c'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
 
   populateUserSelects();
 
