@@ -383,6 +383,28 @@
 
         <!-- TAB 8: ĐÁNH GIÁ CÁ NHÂN -->
         <div class="tab-pane" id="tab-evaluation">
+          <!-- PANEL LỌC THEO TỔ CÔNG TÁC -->
+          <div class="glass-card" style="margin-bottom: 1.25rem; padding: 0.85rem 1.25rem;">
+            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+              <div style="font-weight: 600; color: #f1f5f9; display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem;">
+                <i class="fa-solid fa-users-gear" style="color: #a855f7;"></i>
+                <span>Lọc nhân sự theo Tổ:</span>
+              </div>
+              <div style="flex: 1; max-width: 300px;">
+                <select id="eval-filter-team" class="form-control" style="font-size: 0.82rem; padding: 0.4rem 0.75rem;">
+                  <option value="">-- Tất cả các Tổ công tác --</option>
+                </select>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-left: auto;">
+                <i class="fa-solid fa-arrow-down-wide-short"></i> Sắp xếp tự động: 
+                <strong style="color: #34d399;">A - Xuất sắc</strong> &rarr; 
+                <strong style="color: #38bdf8;">B - Tốt</strong> &rarr; 
+                <strong style="color: #facc15;">C - Đạt</strong> &rarr; 
+                <strong style="color: #f43f5e;">D - Chưa đạt</strong>
+              </div>
+            </div>
+          </div>
+
           <div class="table-wrapper">
             <table class="custom-table" id="table-eval">
               <thead>

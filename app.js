@@ -247,6 +247,14 @@ function initUI() {
     btnExportReportExcel.addEventListener('click', exportReportExcel);
   }
 
+  // Evaluation Team Filter Listener
+  const evalTeamFilter = document.getElementById('eval-filter-team');
+  if (evalTeamFilter) {
+    evalTeamFilter.addEventListener('change', () => {
+      renderEvaluationView();
+    });
+  }
+
   // Task Form auto-fill A and prioritize users when AR Team selected
   document.getElementById('task-ar-team').addEventListener('change', (e) => {
     const selectedTeam = e.target.value;
@@ -1134,14 +1142,32 @@ function renderEvaluationView() {
   const tbody = document.getElementById('tbody-eval');
   tbody.innerHTML = '';
 
+  // Populate team dropdown if empty
+  const evalTeamFilter = document.getElementById('eval-filter-team');
+  if (evalTeamFilter && evalTeamFilter.options.length <= 1) {
+    const teams = new Set();
+    state.users.forEach(u => {
+      const t = getPersonProp(u, 'team');
+      if (t) teams.add(t);
+    });
+    state.tasks.forEach(t => {
+      if (t['Tổ chủ trì (AR)']) teams.add(t['Tổ chủ trì (AR)']);
+    });
+    fillSelect('eval-filter-team', Array.from(teams), '-- Tất cả các Tổ công tác --');
+  }
+
+  const selectedTeam = evalTeamFilter?.value || state.filters.arTeam || '';
+
   const userStats = {};
 
-  // Initialize with all users
+  // Pre-populate users from state.users
   state.users.forEach(u => {
-    const name = u['Tên'] || u['Tên NV'];
+    const name = getPersonProp(u, 'name');
+    const team = getPersonProp(u, 'team');
     if (name) {
       userStats[name] = {
-        team: u['Tổ'] || u['Tổ hạ tầng'] || '-',
+        name: name,
+        team: team || '-',
         total: 0,
         leadA: 0,
         coR: 0,
@@ -1159,7 +1185,7 @@ function renderEvaluationView() {
     const st = (t['Trạng thái'] || '').toLowerCase();
 
     if (nameA) {
-      if (!userStats[nameA]) userStats[nameA] = { team: t['Tổ chủ trì (AR)'] || '-', total: 0, leadA: 0, coR: 0, doing: 0, done: 0, overdue: 0 };
+      if (!userStats[nameA]) userStats[nameA] = { name: nameA, team: t['Tổ chủ trì (AR)'] || '-', total: 0, leadA: 0, coR: 0, doing: 0, done: 0, overdue: 0 };
       userStats[nameA].total++;
       userStats[nameA].leadA++;
       if (st.includes('hoàn thành')) userStats[nameA].done++;
@@ -1168,7 +1194,7 @@ function renderEvaluationView() {
     }
 
     if (nameR && nameR !== nameA) {
-      if (!userStats[nameR]) userStats[nameR] = { team: t['Tổ (R)'] || '-', total: 0, leadA: 0, coR: 0, doing: 0, done: 0, overdue: 0 };
+      if (!userStats[nameR]) userStats[nameR] = { name: nameR, team: t['Tổ (R)'] || '-', total: 0, leadA: 0, coR: 0, doing: 0, done: 0, overdue: 0 };
       userStats[nameR].total++;
       userStats[nameR].coR++;
       if (st.includes('hoàn thành')) userStats[nameR].done++;
@@ -1177,9 +1203,69 @@ function renderEvaluationView() {
     }
   });
 
-  const names = Object.keys(userStats).sort();
-  if (names.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: var(--text-muted); padding: 2rem;">Chưa có dữ liệu đánh giá nhân sự</td></tr>`;
+  const userList = [];
+  Object.keys(userStats).forEach(name => {
+    const u = userStats[name];
+    const rate = u.total > 0 ? Math.round((u.done / u.total) * 100) : 0;
+
+    let rating = 'D - Chưa đạt';
+    let ratingClass = 'rating-d';
+    let ratingOrder = 4; // Rank 4: D
+
+    if (rate >= 90) {
+      rating = 'A - Xuất sắc';
+      ratingClass = 'rating-a';
+      ratingOrder = 1; // Rank 1: A
+    } else if (rate >= 70) {
+      rating = 'B - Tốt';
+      ratingClass = 'rating-b';
+      ratingOrder = 2; // Rank 2: B
+    } else if (rate >= 50) {
+      rating = 'C - Đạt';
+      ratingClass = 'rating-c';
+      ratingOrder = 3; // Rank 3: C
+    }
+
+    userList.push({
+      name: name,
+      team: u.team,
+      total: u.total,
+      leadA: u.leadA,
+      coR: u.coR,
+      doing: u.doing,
+      done: u.done,
+      overdue: u.overdue,
+      rate: rate,
+      rating: rating,
+      ratingClass: ratingClass,
+      ratingOrder: ratingOrder
+    });
+  });
+
+  // Filter by Team if selected
+  let filteredUserList = userList;
+  if (selectedTeam) {
+    filteredUserList = userList.filter(u => 
+      (u.team || '').toLowerCase().trim() === selectedTeam.toLowerCase().trim()
+    );
+  }
+
+  // Sort: Rank A first (order 1) -> Rank B (2) -> Rank C (3) -> Rank D (4), then completion rate (%) descending
+  filteredUserList.sort((a, b) => {
+    if (a.ratingOrder !== b.ratingOrder) {
+      return a.ratingOrder - b.ratingOrder;
+    }
+    if (b.rate !== a.rate) {
+      return b.rate - a.rate;
+    }
+    if (b.total !== a.total) {
+      return b.total - a.total;
+    }
+    return a.name.localeCompare(b.name, 'vi');
+  });
+
+  if (filteredUserList.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: var(--text-muted); padding: 2rem;">Chưa có dữ liệu đánh giá nhân sự cho Tổ công tác này</td></tr>`;
     return;
   }
 
@@ -1190,8 +1276,7 @@ function renderEvaluationView() {
   let sumDone = 0;
   let sumOverdue = 0;
 
-  names.forEach((name, idx) => {
-    const u = userStats[name];
+  filteredUserList.forEach((u, idx) => {
     sumTotal += u.total;
     sumLeadA += u.leadA;
     sumCoR += u.coR;
@@ -1199,19 +1284,10 @@ function renderEvaluationView() {
     sumDone += u.done;
     sumOverdue += u.overdue;
 
-    const rate = u.total > 0 ? Math.round((u.done / u.total) * 100) : 0;
-
-    // Rating logic: A >= 90%, B >= 70%, C >= 50%, D < 50%
-    let rating = 'D - Chưa đạt';
-    let ratingClass = 'rating-d';
-    if (rate >= 90) { rating = 'A - Xuất sắc'; ratingClass = 'rating-a'; }
-    else if (rate >= 70) { rating = 'B - Tốt'; ratingClass = 'rating-b'; }
-    else if (rate >= 50) { rating = 'C - Đạt'; ratingClass = 'rating-c'; }
-
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${idx + 1}</td>
-      <td style="font-weight: 600;">${escapeHtml(name)}</td>
+      <td style="font-weight: 600;">${escapeHtml(u.name)}</td>
       <td>${escapeHtml(u.team)}</td>
       <td><strong>${u.total}</strong></td>
       <td>${u.leadA}</td>
@@ -1219,8 +1295,8 @@ function renderEvaluationView() {
       <td>${u.doing}</td>
       <td style="color: var(--accent-emerald); font-weight: 600;">${u.done}</td>
       <td style="color: var(--accent-rose);">${u.overdue}</td>
-      <td><strong>${rate}%</strong></td>
-      <td><span class="badge ${ratingClass}">${rating}</span></td>
+      <td><strong>${u.rate}%</strong></td>
+      <td><span class="badge ${u.ratingClass}">${u.rating}</span></td>
     `;
     tbody.appendChild(tr);
   });
